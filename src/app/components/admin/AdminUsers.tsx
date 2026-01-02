@@ -14,7 +14,7 @@ const roleLabels: Record<string, string> = {
   personal_sala: "Personal de sala",
 };
 
-export default function AdminUsers({ user, accessToken, projectId }: AdminUsersProps) {
+export default function AdminUsers({ user }: AdminUsersProps) {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -125,8 +125,12 @@ export default function AdminUsers({ user, accessToken, projectId }: AdminUsersP
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Usuarios del sistema</h3>
-          <p className="text-sm text-gray-600">Gestiona los usuarios y sus permisos</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Usuarios del sistema
+          </h3>
+          <p className="text-sm text-gray-600">
+            Gestiona los usuarios y sus permisos
+          </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -164,8 +168,12 @@ export default function AdminUsers({ user, accessToken, projectId }: AdminUsersP
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div>
-                        <div className="font-medium text-gray-900">{u.name}</div>
-                        <div className="text-sm text-gray-500">@{u.username}</div>
+                        <div className="font-medium text-gray-900">
+                          {u.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          @{u.username}
+                        </div>
                       </div>
                     </div>
                   </td>

@@ -15,7 +15,11 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-export default function Dashboard({ user, accessToken, onLogout }: DashboardProps) {
+export default function Dashboard({
+  user,
+  accessToken,
+  onLogout,
+}: DashboardProps) {
   const [activeTab, setActiveTab] = useState("checklists");
 
   const canAccessAdmin = user.role === "admin";
@@ -58,25 +62,49 @@ export default function Dashboard({ user, accessToken, onLogout }: DashboardProp
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "checklists" && (
-          <Checklists user={user} accessToken={accessToken} projectId={projectId} />
+          <Checklists
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
         {activeTab === "incidencias" && (
-          <Incidencias user={user} accessToken={accessToken} projectId={projectId} />
+          <Incidencias
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
         {activeTab === "appcc" && (
           <APPCC user={user} accessToken={accessToken} projectId={projectId} />
         )}
         {activeTab === "historico" && (
-          <Historico user={user} accessToken={accessToken} projectId={projectId} />
+          <Historico
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
         {activeTab === "exams" && (
-          <EmployeeExams user={user} accessToken={accessToken} projectId={projectId} />
+          <EmployeeExams
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
         {activeTab === "messages" && (
-          <EmployeeMessages user={user} accessToken={accessToken} projectId={projectId} />
+          <EmployeeMessages
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
         {activeTab === "admin" && canAccessAdmin && (
-          <AdminPanel user={user} accessToken={accessToken} projectId={projectId} />
+          <AdminPanel
+            user={user}
+            accessToken={accessToken}
+            projectId={projectId}
+          />
         )}
       </div>
     </div>

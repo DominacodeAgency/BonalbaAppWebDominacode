@@ -1,6 +1,7 @@
 /**
- * Cliente API: centraliza la URL base (VITE_API_BASE) y el helper fetch.
- * Así no repetimos código y cambiamos el backend en un solo sitio.
+ * Cliente API: centraliza la URL base (VITE_API_BASE) y helpers HTTP.
+ * Así no repetimos strings y cambiamos el backend en un solo sitio.
+ * Ya no recibe token, lo añadirá el cliente autenticado.
  */
 const API_BASE = import.meta.env.VITE_API_BASE as string;
 
@@ -9,32 +10,35 @@ if (!API_BASE) {
 }
 
 export function apiUrl(path: string) {
-  // Asegura barras correctas
   const base = API_BASE.replace(/\/+$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {},
-  token?: string
-): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  if (token) headers.Authorization = `Bearer ${token}`;
+  // Solo ponemos JSON si no te lo han sobrescrito
+  if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const res = await fetch(apiUrl(path), { ...options, headers });
 
-  // Intenta leer JSON incluso si hay error
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: any = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
 
   if (!res.ok) {
-    const msg = data?.error ?? `HTTP ${res.status}`;
+    const msg =
+      data?.error ?? (typeof data === "string" ? data : `HTTP ${res.status}`);
     throw new Error(msg);
   }
 
