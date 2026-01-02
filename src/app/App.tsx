@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react";
-import { projectId, publicAnonKey } from "../../utils/supabase/info";
+import { useEffect, useState } from "react";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 
+/**
+ * App
+ * Controla el estado de autenticación: guarda/lee el token, valida sesión con /auth/me
+ * y muestra Login o Dashboard según si el usuario está autenticado.
+ */
 export default function App() {
+  const API_BASE = import.meta.env.VITE_API_BASE as string;
+
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Si hay token guardado, validamos el usuario con /auth/me
     const storedToken = localStorage.getItem("accessToken");
     if (storedToken) {
       setAccessToken(storedToken);
@@ -22,24 +28,19 @@ export default function App() {
 
   const fetchCurrentUser = async (token: string) => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/auth/me`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (res.ok) {
+        const data = await res.json();
         setUser(data.user);
       } else {
         localStorage.removeItem("accessToken");
         setAccessToken(null);
       }
-    } catch (error) {
-      console.error("Error fetching current user:", error);
+    } catch (e) {
+      console.error("Error fetching current user:", e);
       localStorage.removeItem("accessToken");
       setAccessToken(null);
     } finally {
@@ -49,24 +50,18 @@ export default function App() {
 
   const handleLogin = async (username: string, password: string) => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify({ username, password }),
-        }
-      );
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Error al iniciar sesión");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Error al iniciar sesión");
       }
 
-      const data = await response.json();
       setUser(data.user);
       setAccessToken(data.accessToken);
       localStorage.setItem("accessToken", data.accessToken);
@@ -87,21 +82,17 @@ export default function App() {
   const initializeDatabase = async () => {
     setInitializing(true);
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/init`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_BASE}/init`, { method: "POST" });
 
-      if (!response.ok) {
-        throw new Error("Error al inicializar la base de datos");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Error al inicializar la base de datos");
       }
 
-      alert("Base de datos inicializada correctamente. Ya puedes iniciar sesión.");
+      alert(
+        "Base de datos inicializada correctamente. Ya puedes iniciar sesión."
+      );
     } catch (error: any) {
       console.error("Init error:", error);
       alert("Error al inicializar: " + error.message);
@@ -109,6 +100,16 @@ export default function App() {
       setInitializing(false);
     }
   };
+
+  // Si falta VITE_API_BASE, te lo canta claramente
+  if (!API_BASE) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h2>Falta VITE_API_BASE en .env</h2>
+        <p>Define VITE_API_BASE y reinicia npm run dev.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -132,10 +133,6 @@ export default function App() {
   }
 
   return (
-    <Dashboard
-      user={user}
-      accessToken={accessToken!}
-      onLogout={handleLogout}
-    />
+    <Dashboard user={user} accessToken={accessToken!} onLogout={handleLogout} />
   );
 }
