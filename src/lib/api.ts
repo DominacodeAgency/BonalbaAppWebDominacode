@@ -3,6 +3,9 @@
  * Así no repetimos strings y cambiamos el backend en un solo sitio.
  * Ya no recibe token, lo añadirá el cliente autenticado.
  */
+import { clearToken } from "@/auth/token";
+import { AUTH_ERRORS } from "@/auth/errors";
+
 const API_BASE = import.meta.env.VITE_API_BASE as string;
 
 if (!API_BASE) {
@@ -10,35 +13,39 @@ if (!API_BASE) {
 }
 
 export function apiUrl(path: string) {
+  // Asegura barras correctas
   const base = API_BASE.replace(/\/+$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}) {
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  // Solo ponemos JSON si no te lo han sobrescrito
-  if (!headers["Content-Type"] && !(options.body instanceof FormData)) {
+  // Si hay body y no han pasado Content-Type, lo ponemos
+  const hasBody = typeof options.body !== "undefined";
+  if (hasBody && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
   const res = await fetch(apiUrl(path), { ...options, headers });
 
-  const text = await res.text();
-  let data: any = null;
-
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
+  // Si la sesión caduca, limpiamos token y lanzamos un error "con código"
+  if (res.status === 401) {
+    clearToken();
+    throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
   }
 
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+
   if (!res.ok) {
-    const msg =
-      data?.error ?? (typeof data === "string" ? data : `HTTP ${res.status}`);
+    const msg = data?.error ?? `HTTP ${res.status}`;
     throw new Error(msg);
   }
 

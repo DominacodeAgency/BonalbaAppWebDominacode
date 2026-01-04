@@ -57,7 +57,7 @@ export default function AdminExams() {
     try {
       await apiFetchAuth("/exams", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // NO hace falta Content-Type: apiFetch ya lo añade
         body: JSON.stringify(examData),
       });
 
@@ -67,9 +67,9 @@ export default function AdminExams() {
       ]);
       fetchData();
       alert("Examen creado correctamente");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating exam:", error);
-      alert("Error al crear examen");
+      alert(error?.message ?? "Error al crear examen");
     }
   };
 

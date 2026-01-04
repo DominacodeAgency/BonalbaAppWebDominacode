@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { apiFetchAuth } from "./apiAuth";
 import { clearToken, getToken, saveToken } from "./token";
-
+import { AUTH_ERRORS } from "@/auth/errors";
 /**
  * Contexto de auth: expone user, loading y acciones de login/logout.
  * Así cualquier componente puede saber si hay sesión sin pasar props.
@@ -40,13 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await apiFetchAuth<{ user: User }>("/auth/me");
       setUser(data.user);
-    } catch {
-      // Token inválido/expirado
+    } catch (e: any) {
+      // Token inválido/expirado o cualquier error → limpiamos sesión
+      if (e?.message === AUTH_ERRORS.SESSION_EXPIRED) {
+        // ya limpió token en apiFetch(), solo aseguramos estado
+      } else {
+        // otros errores también dejan fuera
+      }
       clearToken();
       setUser(null);
     }
   }
-
   async function login(username: string, password: string) {
     const data = await apiFetch<{ user: User; accessToken: string }>(
       "/auth/login",

@@ -24,8 +24,9 @@ export default function AdminEquipment() {
         method: "GET",
       });
       setEquipment(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching equipment:", error);
+      alert(error?.message ?? "Error al cargar equipos");
     } finally {
       setLoading(false);
     }
@@ -43,7 +44,7 @@ export default function AdminEquipment() {
     try {
       await apiFetchAuth("/equipment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // ⬇️ NO hace falta Content-Type: apiFetch ya lo añade
         body: JSON.stringify(equipmentData),
       });
 
@@ -52,7 +53,7 @@ export default function AdminEquipment() {
       alert("Equipo creado correctamente");
     } catch (error: any) {
       console.error("Error creating equipment:", error);
-      alert("Error al crear equipo");
+      alert(error?.message ?? "Error al crear equipo");
     }
   };
 
@@ -68,7 +69,7 @@ export default function AdminEquipment() {
       alert("Equipo eliminado correctamente");
     } catch (error: any) {
       console.error("Error deleting equipment:", error);
-      alert("Error al eliminar equipo");
+      alert(error?.message ?? "Error al eliminar equipo");
     }
   };
 
