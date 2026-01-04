@@ -2,7 +2,23 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { apiFetchAuth } from "./apiAuth";
 import { clearToken, getToken, saveToken } from "./token";
-import { AUTH_ERRORS } from "@/auth/errors";
+async function refreshMe() {
+  const token = getToken();
+  if (!token) {
+    setUser(null);
+    return;
+  }
+
+  try {
+    const data = await apiFetchAuth<{ user: User }>("/auth/me");
+    setUser(data.user);
+  } catch {
+    // apiFetchAuth ya hará emitLogout() si es 401.
+    // Aquí solo aseguramos estado.
+    setUser(null);
+  }
+}
+import { AUTH_LOGOUT_EVENT } from "./authEvents";
 /**
  * Contexto de auth: expone user, loading y acciones de login/logout.
  * Así cualquier componente puede saber si hay sesión sin pasar props.
@@ -29,7 +45,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
   async function refreshMe() {
     const token = getToken();
     if (!token) {
@@ -40,14 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await apiFetchAuth<{ user: User }>("/auth/me");
       setUser(data.user);
-    } catch (e: any) {
-      // Token inválido/expirado o cualquier error → limpiamos sesión
-      if (e?.message === AUTH_ERRORS.SESSION_EXPIRED) {
-        // ya limpió token en apiFetch(), solo aseguramos estado
-      } else {
-        // otros errores también dejan fuera
-      }
-      clearToken();
+    } catch {
+      // apiFetchAuth ya hará emitLogout() si es 401.
+      // Aquí solo aseguramos estado.
       setUser(null);
     }
   }
@@ -63,7 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     saveToken(data.accessToken);
     setUser(data.user);
   }
+  useEffect(() => {
+    const onLogout = () => {
+      clearToken();
+      setUser(null);
+    };
 
+    window.addEventListener(AUTH_LOGOUT_EVENT, onLogout);
+    return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onLogout);
+  }, []);
   function logout() {
     clearToken();
     setUser(null);
