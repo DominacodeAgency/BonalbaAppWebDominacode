@@ -1,35 +1,24 @@
 import { useState, useEffect } from "react";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface EmployeeMessagesProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
-
-export default function EmployeeMessages({ user, accessToken, projectId }: EmployeeMessagesProps) {
+/**
+ * EmployeeMessages: bandeja de mensajes del empleado.
+ * Usa apiFetchAuth para autenticar automáticamente (sin props token/projectId).
+ */
+export default function EmployeeMessages() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
 
   useEffect(() => {
     fetchMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/messages`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data);
-      }
+      const data = await apiFetchAuth<any[]>("/messages", { method: "GET" });
+      setMessages(data);
     } catch (error) {
       console.error("Error fetching messages:", error);
     } finally {
@@ -39,16 +28,7 @@ export default function EmployeeMessages({ user, accessToken, projectId }: Emplo
 
   const markAsRead = async (messageId: string) => {
     try {
-      await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/messages/${messageId}/read`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-      
+      await apiFetchAuth(`/messages/${messageId}/read`, { method: "PUT" });
       await fetchMessages();
     } catch (error) {
       console.error("Error marking message as read:", error);
@@ -93,14 +73,18 @@ export default function EmployeeMessages({ user, accessToken, projectId }: Emplo
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-gray-900">{message.subject}</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {message.subject}
+                  </h3>
                   {!message.read && (
                     <span className="bg-blue-600 text-white text-xs font-medium px-2 py-1 rounded">
                       Nuevo
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-2">{message.message}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {message.message}
+                </p>
               </div>
             </div>
 
@@ -139,12 +123,16 @@ export default function EmployeeMessages({ user, accessToken, projectId }: Emplo
                   <strong>De:</strong> {selectedMessage.senderName}
                 </span>
                 <span>•</span>
-                <span>{new Date(selectedMessage.date).toLocaleString("es-ES")}</span>
+                <span>
+                  {new Date(selectedMessage.date).toLocaleString("es-ES")}
+                </span>
               </div>
             </div>
 
             <div className="prose max-w-none">
-              <p className="text-gray-900 whitespace-pre-wrap">{selectedMessage.message}</p>
+              <p className="text-gray-900 whitespace-pre-wrap">
+                {selectedMessage.message}
+              </p>
             </div>
 
             <div className="mt-6 flex justify-end">

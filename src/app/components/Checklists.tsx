@@ -1,36 +1,30 @@
 import { useState, useEffect } from "react";
 import ChecklistDetail from "./ChecklistDetail";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface ChecklistsProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * Checklists: lista checklists disponibles y abre su detalle.
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
+export default function Checklists() {
+  const { user } = useAuth();
 
-export default function Checklists({ user, accessToken, projectId }: ChecklistsProps) {
   const [checklists, setChecklists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedChecklist, setSelectedChecklist] = useState<string | null>(null);
+  const [selectedChecklist, setSelectedChecklist] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetchChecklists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchChecklists = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/checklists`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setChecklists(data);
-      }
+      const data = await apiFetchAuth<any[]>("/checklists", { method: "GET" });
+      setChecklists(data);
     } catch (error) {
       console.error("Error fetching checklists:", error);
     } finally {
@@ -38,13 +32,12 @@ export default function Checklists({ user, accessToken, projectId }: ChecklistsP
     }
   };
 
+  if (!user) return null;
+
   if (selectedChecklist) {
     return (
       <ChecklistDetail
         checklistId={selectedChecklist}
-        user={user}
-        accessToken={accessToken}
-        projectId={projectId}
         onBack={() => {
           setSelectedChecklist(null);
           fetchChecklists();
@@ -64,15 +57,20 @@ export default function Checklists({ user, accessToken, projectId }: ChecklistsP
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Checklists diarias</h2>
-        <p className="text-gray-600">Gestiona las tareas de apertura y cierre</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Checklists diarias
+        </h2>
+        <p className="text-gray-600">
+          Gestiona las tareas de apertura y cierre
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {checklists.map((checklist) => {
           const total = checklist.progress?.total || 0;
           const completed = checklist.progress?.completed || 0;
-          const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+          const percentage =
+            total > 0 ? Math.round((completed / total) * 100) : 0;
 
           return (
             <div
@@ -82,12 +80,17 @@ export default function Checklists({ user, accessToken, projectId }: ChecklistsP
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{checklist.name}</h3>
-                  <p className="text-sm text-gray-500 capitalize">{checklist.type} • {checklist.shift}</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {checklist.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 capitalize">
+                    {checklist.type} • {checklist.shift}
+                  </p>
                 </div>
                 {checklist.incidencias > 0 && (
                   <span className="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded">
-                    {checklist.incidencias} incidencia{checklist.incidencias !== 1 ? "s" : ""}
+                    {checklist.incidencias} incidencia
+                    {checklist.incidencias !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -116,7 +119,11 @@ export default function Checklists({ user, accessToken, projectId }: ChecklistsP
 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                   <span className="text-sm text-gray-500">
-                    {percentage === 100 ? "Completado" : percentage > 0 ? "En progreso" : "Pendiente"}
+                    {percentage === 100
+                      ? "Completado"
+                      : percentage > 0
+                      ? "En progreso"
+                      : "Pendiente"}
                   </span>
                   <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
                     Ver detalle →

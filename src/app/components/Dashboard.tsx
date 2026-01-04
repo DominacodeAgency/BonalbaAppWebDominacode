@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { projectId } from "../../../utils/supabase/info";
 import Header from "./Header";
 import Checklists from "./Checklists";
 import Incidencias from "./Incidencias";
@@ -9,17 +8,16 @@ import AdminPanel from "./AdminPanel";
 import EmployeeExams from "./EmployeeExams";
 import EmployeeMessages from "./EmployeeMessages";
 
+/**
+ * Dashboard: contenedor principal tras login, muestra pestañas y renderiza secciones.
+ * Ya no pasa accessToken/projectId; cada sección usa AuthContext + apiFetchAuth.
+ */
 interface DashboardProps {
   user: any;
-  accessToken: string;
   onLogout: () => void;
 }
 
-export default function Dashboard({
-  user,
-  accessToken,
-  onLogout,
-}: DashboardProps) {
+export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("checklists");
 
   const canAccessAdmin = user.role === "admin";
@@ -61,51 +59,13 @@ export default function Dashboard({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === "checklists" && (
-          <Checklists
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
-        {activeTab === "incidencias" && (
-          <Incidencias
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
-        {activeTab === "appcc" && (
-          <APPCC user={user} accessToken={accessToken} projectId={projectId} />
-        )}
-        {activeTab === "historico" && (
-          <Historico
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
-        {activeTab === "exams" && (
-          <EmployeeExams
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
-        {activeTab === "messages" && (
-          <EmployeeMessages
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
-        {activeTab === "admin" && canAccessAdmin && (
-          <AdminPanel
-            user={user}
-            accessToken={accessToken}
-            projectId={projectId}
-          />
-        )}
+        {activeTab === "checklists" && <Checklists />}
+        {activeTab === "incidencias" && <Incidencias />}
+        {activeTab === "appcc" && <APPCC />}
+        {activeTab === "historico" && <Historico />}
+        {activeTab === "exams" && <EmployeeExams />}
+        {activeTab === "messages" && <EmployeeMessages />}
+        {activeTab === "admin" && canAccessAdmin && <AdminPanel user={user} />}
       </div>
     </div>
   );

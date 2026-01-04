@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface AdminMessagesProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * AdminMessages: mensajería para admins.
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
+export default function AdminMessages() {
+  const { user } = useAuth();
 
-export default function AdminMessages({ user, accessToken, projectId }: AdminMessagesProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,31 +16,18 @@ export default function AdminMessages({ user, accessToken, projectId }: AdminMes
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
     try {
-      const [messagesRes, usersRes] = await Promise.all([
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/messages`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/users`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
+      const [messagesData, usersData] = await Promise.all([
+        apiFetchAuth<any[]>("/messages", { method: "GET" }),
+        apiFetchAuth<any[]>("/users", { method: "GET" }),
       ]);
 
-      if (messagesRes.ok && usersRes.ok) {
-        const messagesData = await messagesRes.json();
-        const usersData = await usersRes.json();
-        setMessages(messagesData);
-        setUsers(usersData);
-      }
+      setMessages(messagesData);
+      setUsers(usersData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -57,31 +46,22 @@ export default function AdminMessages({ user, accessToken, projectId }: AdminMes
     };
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(messageData),
-        }
-      );
+      await apiFetchAuth("/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(messageData),
+      });
 
-      if (response.ok) {
-        setShowModal(false);
-        fetchData();
-        alert("Mensaje enviado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al enviar mensaje: " + error.error);
-      }
+      setShowModal(false);
+      fetchData();
+      alert("Mensaje enviado correctamente");
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Error al enviar mensaje");
     }
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -95,8 +75,12 @@ export default function AdminMessages({ user, accessToken, projectId }: AdminMes
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Mensajería</h3>
-          <p className="text-sm text-gray-600">Envía mensajes personalizados a los empleados</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Mensajería
+          </h3>
+          <p className="text-sm text-gray-600">
+            Envía mensajes personalizados a los empleados
+          </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -120,13 +104,17 @@ export default function AdminMessages({ user, accessToken, projectId }: AdminMes
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <h5 className="font-medium text-gray-900">{message.subject}</h5>
+                    <h5 className="font-medium text-gray-900">
+                      {message.subject}
+                    </h5>
                     <p className="text-sm text-gray-600 line-clamp-1 mt-1">
                       {message.message}
                     </p>
                   </div>
                   {message.read && (
-                    <span className="text-xs text-green-600 font-medium">Leído</span>
+                    <span className="text-xs text-green-600 font-medium">
+                      Leído
+                    </span>
                   )}
                 </div>
 
@@ -145,7 +133,9 @@ export default function AdminMessages({ user, accessToken, projectId }: AdminMes
           })}
 
           {messages.length === 0 && (
-            <p className="text-center text-gray-500 py-8">No has enviado mensajes todavía</p>
+            <p className="text-center text-gray-500 py-8">
+              No has enviado mensajes todavía
+            </p>
           )}
         </div>
       </div>

@@ -1,35 +1,24 @@
 import { useState, useEffect } from "react";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface HistoricoProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
-
-export default function Historico({ user, accessToken, projectId }: HistoricoProps) {
+/**
+ * Historico: muestra el histórico de actividades.
+ * Usa apiFetchAuth para llamar al backend con token automático.
+ */
+export default function Historico() {
   const [historico, setHistorico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("todos");
 
   useEffect(() => {
     fetchHistorico();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchHistorico = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/historico`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setHistorico(data);
-      }
+      const data = await apiFetchAuth<any[]>("/historico", { method: "GET" });
+      setHistorico(data);
     } catch (error) {
       console.error("Error fetching historico:", error);
     } finally {
@@ -73,7 +62,11 @@ export default function Historico({ user, accessToken, projectId }: HistoricoPro
     };
 
     return (
-      <span className={`text-xs font-medium px-2 py-1 rounded ${styles[type as keyof typeof styles] || "bg-gray-100 text-gray-700"}`}>
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded ${
+          styles[type as keyof typeof styles] || "bg-gray-100 text-gray-700"
+        }`}
+      >
         {labels[type as keyof typeof labels] || type}
       </span>
     );
@@ -90,8 +83,12 @@ export default function Historico({ user, accessToken, projectId }: HistoricoPro
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Histórico de actividades</h2>
-        <p className="text-gray-600">Registro completo de todas las operaciones</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Histórico de actividades
+        </h2>
+        <p className="text-gray-600">
+          Registro completo de todas las operaciones
+        </p>
       </div>
 
       {/* KPIs */}
@@ -113,7 +110,9 @@ export default function Historico({ user, accessToken, projectId }: HistoricoPro
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <p className="text-sm text-gray-600 mb-1">Esta semana</p>
-          <p className="text-3xl font-bold text-blue-600">{thisWeekItems.length}</p>
+          <p className="text-3xl font-bold text-blue-600">
+            {thisWeekItems.length}
+          </p>
         </div>
       </div>
 
@@ -166,18 +165,23 @@ export default function Historico({ user, accessToken, projectId }: HistoricoPro
       {/* Timeline */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Actividad reciente</h3>
-        
+
         <div className="space-y-4">
           {filteredHistorico.map((item) => (
-            <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-100 last:border-0">
+            <div
+              key={item.id}
+              className="flex gap-4 pb-4 border-b border-gray-100 last:border-0"
+            >
               <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-blue-600"></div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {getTypeBadge(item.type)}
-                  <span className="font-medium text-gray-900">{item.action}</span>
+                  <span className="font-medium text-gray-900">
+                    {item.action}
+                  </span>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 mb-1">
                   Por <strong>{item.user}</strong>
                 </p>
@@ -209,7 +213,9 @@ export default function Historico({ user, accessToken, projectId }: HistoricoPro
         </div>
 
         {filteredHistorico.length === 0 && (
-          <p className="text-sm text-gray-500 text-center py-8">No hay actividades registradas</p>
+          <p className="text-sm text-gray-500 text-center py-8">
+            No hay actividades registradas
+          </p>
         )}
       </div>
     </div>

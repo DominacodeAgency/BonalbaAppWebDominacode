@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface AdminExamsProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * AdminExams: gestión de exámenes y visualización de resultados.
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
+export default function AdminExams() {
+  const { user } = useAuth();
 
-export default function AdminExams({ user, accessToken, projectId }: AdminExamsProps) {
   const [exams, setExams] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,31 +20,18 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
     try {
-      const [examsRes, resultsRes] = await Promise.all([
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams/results`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
+      const [examsData, resultsData] = await Promise.all([
+        apiFetchAuth<any[]>("/exams", { method: "GET" }),
+        apiFetchAuth<any[]>("/exams/results", { method: "GET" }),
       ]);
 
-      if (examsRes.ok && resultsRes.ok) {
-        const examsData = await examsRes.json();
-        const resultsData = await resultsRes.json();
-        setExams(examsData);
-        setResults(resultsData);
-      }
+      setExams(examsData);
+      setResults(resultsData);
     } catch (error) {
       console.error("Error fetching exams data:", error);
     } finally {
@@ -66,27 +55,18 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
     }
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(examData),
-        }
-      );
+      await apiFetchAuth("/exams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(examData),
+      });
 
-      if (response.ok) {
-        setShowCreateModal(false);
-        setQuestions([{ question: "", options: ["", "", "", ""], correctAnswer: 0 }]);
-        fetchData();
-        alert("Examen creado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al crear examen: " + error.error);
-      }
+      setShowCreateModal(false);
+      setQuestions([
+        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+      ]);
+      fetchData();
+      alert("Examen creado correctamente");
     } catch (error) {
       console.error("Error creating exam:", error);
       alert("Error al crear examen");
@@ -94,7 +74,10 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
   };
 
   const addQuestion = () => {
-    setQuestions([...questions, { question: "", options: ["", "", "", ""], correctAnswer: 0 }]);
+    setQuestions([
+      ...questions,
+      { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+    ]);
   };
 
   const updateQuestion = (index: number, field: string, value: any) => {
@@ -103,7 +86,11 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
     setQuestions(newQuestions);
   };
 
-  const updateOption = (questionIndex: number, optionIndex: number, value: string) => {
+  const updateOption = (
+    questionIndex: number,
+    optionIndex: number,
+    value: string
+  ) => {
     const newQuestions = [...questions];
     newQuestions[questionIndex].options[optionIndex] = value;
     setQuestions(newQuestions);
@@ -112,6 +99,8 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
   const removeQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -125,8 +114,12 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Gestión de exámenes</h3>
-          <p className="text-sm text-gray-600">Crea y gestiona exámenes para el personal</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Gestión de exámenes
+          </h3>
+          <p className="text-sm text-gray-600">
+            Crea y gestiona exámenes para el personal
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -150,7 +143,8 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
           const examResults = results.filter((r) => r.examId === exam.id);
           const avgScore =
             examResults.length > 0
-              ? examResults.reduce((sum, r) => sum + r.score, 0) / examResults.length
+              ? examResults.reduce((sum, r) => sum + r.score, 0) /
+                examResults.length
               : 0;
 
           return (
@@ -160,10 +154,15 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{exam.title}</h4>
-                  <p className="text-sm text-gray-600 mb-2">{exam.description}</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">
+                    {exam.title}
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {exam.description}
+                  </p>
                   <p className="text-xs text-gray-500">
-                    {exam.questions.length} preguntas • Creado por {exam.createdBy} el{" "}
+                    {exam.questions.length} preguntas • Creado por{" "}
+                    {exam.createdBy} el{" "}
                     {new Date(exam.createdAt).toLocaleDateString("es-ES")}
                   </p>
                 </div>
@@ -172,7 +171,9 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
               <div className="mt-4 flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-600">Realizaciones:</span>
-                  <span className="font-semibold text-gray-900">{examResults.length}</span>
+                  <span className="font-semibold text-gray-900">
+                    {examResults.length}
+                  </span>
                 </div>
                 {examResults.length > 0 && (
                   <div className="flex items-center gap-2">
@@ -229,7 +230,9 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">Preguntas</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Preguntas
+                  </label>
                   <button
                     type="button"
                     onClick={addQuestion}
@@ -241,7 +244,10 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
 
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {questions.map((q, qIndex) => (
-                    <div key={qIndex} className="border border-gray-200 rounded-lg p-4">
+                    <div
+                      key={qIndex}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <span className="text-sm font-medium text-gray-700">
                           Pregunta {qIndex + 1}
@@ -260,7 +266,9 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
                       <input
                         type="text"
                         value={q.question}
-                        onChange={(e) => updateQuestion(qIndex, "question", e.target.value)}
+                        onChange={(e) =>
+                          updateQuestion(qIndex, "question", e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-3"
                         placeholder="Escribe la pregunta..."
                         required
@@ -268,18 +276,29 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
 
                       <div className="space-y-2">
                         {q.options.map((opt: string, optIndex: number) => (
-                          <div key={optIndex} className="flex items-center gap-2">
+                          <div
+                            key={optIndex}
+                            className="flex items-center gap-2"
+                          >
                             <input
                               type="radio"
                               name={`correct-${qIndex}`}
                               checked={q.correctAnswer === optIndex}
-                              onChange={() => updateQuestion(qIndex, "correctAnswer", optIndex)}
+                              onChange={() =>
+                                updateQuestion(
+                                  qIndex,
+                                  "correctAnswer",
+                                  optIndex
+                                )
+                              }
                               className="text-blue-600"
                             />
                             <input
                               type="text"
                               value={opt}
-                              onChange={(e) => updateOption(qIndex, optIndex, e.target.value)}
+                              onChange={(e) =>
+                                updateOption(qIndex, optIndex, e.target.value)
+                              }
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
                               placeholder={`Opción ${optIndex + 1}`}
                               required
@@ -287,6 +306,7 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
                           </div>
                         ))}
                       </div>
+
                       <p className="text-xs text-gray-500 mt-2">
                         Selecciona la opción correcta con el botón radio
                       </p>
@@ -306,7 +326,13 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
-                    setQuestions([{ question: "", options: ["", "", "", ""], correctAnswer: 0 }]);
+                    setQuestions([
+                      {
+                        question: "",
+                        options: ["", "", "", ""],
+                        correctAnswer: 0,
+                      },
+                    ]);
                   }}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                 >
@@ -343,8 +369,12 @@ export default function AdminExams({ user, accessToken, projectId }: AdminExamsP
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{exam?.title}</p>
-                        <p className="text-sm text-gray-600">{result.userName}</p>
+                        <p className="font-medium text-gray-900">
+                          {exam?.title}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {result.userName}
+                        </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(result.date).toLocaleString("es-ES")}
                         </p>

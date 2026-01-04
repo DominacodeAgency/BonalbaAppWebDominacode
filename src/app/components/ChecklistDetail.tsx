@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
+/**
+ * ChecklistDetail: muestra tareas de un checklist, permite completar tareas y reportar incidencias.
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
 interface ChecklistDetailProps {
   checklistId: string;
-  user: any;
-  accessToken: string;
-  projectId: string;
   onBack: () => void;
 }
 
 export default function ChecklistDetail({
   checklistId,
-  user,
-  accessToken,
-  projectId,
   onBack,
 }: ChecklistDetailProps) {
+  const { user } = useAuth();
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -25,23 +27,18 @@ export default function ChecklistDetail({
 
   useEffect(() => {
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checklistId]);
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/checklists/${checklistId}`,
+      const data = await apiFetchAuth<{ tasks: any[] }>(
+        `/checklists/${checklistId}`,
         {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          method: "GET",
         }
       );
-
-      if (response.ok) {
-        const data = await response.json();
-        setTasks(data.tasks);
-      }
+      setTasks(data.tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
@@ -58,23 +55,18 @@ export default function ChecklistDetail({
     if (!selectedTask) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/checklists/${checklistId}/tasks/${selectedTask.id}/complete`,
+      await apiFetchAuth(
+        `/checklists/${checklistId}/tasks/${selectedTask.id}/complete`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ observations }),
         }
       );
 
-      if (response.ok) {
-        await fetchTasks();
-        setSelectedTask(null);
-        setObservations("");
-      }
+      await fetchTasks();
+      setSelectedTask(null);
+      setObservations("");
     } catch (error) {
       console.error("Error completing task:", error);
     }
@@ -110,32 +102,24 @@ export default function ChecklistDetail({
     const priority = formData.get("priority") as string;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/incidencias`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            title,
-            description,
-            priority,
-            checklistId,
-            taskId: selectedTask.id,
-            photoData,
-          }),
-        }
-      );
+      await apiFetchAuth("/incidencias", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          priority,
+          checklistId,
+          taskId: selectedTask.id,
+          photoData,
+        }),
+      });
 
-      if (response.ok) {
-        setShowIncidenciaModal(false);
-        setSelectedTask(null);
-        setPhotoData(null);
-        setPhotoPreview(null);
-        alert("Incidencia reportada correctamente");
-      }
+      setShowIncidenciaModal(false);
+      setSelectedTask(null);
+      setPhotoData(null);
+      setPhotoPreview(null);
+      alert("Incidencia reportada correctamente");
     } catch (error) {
       console.error("Error reporting incidencia:", error);
     }
@@ -157,7 +141,11 @@ export default function ChecklistDetail({
     };
 
     return (
-      <span className={`text-xs font-medium px-2 py-1 rounded ${styles[status as keyof typeof styles] || styles.pending}`}>
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded ${
+          styles[status as keyof typeof styles] || styles.pending
+        }`}
+      >
         {labels[status as keyof typeof labels] || status}
       </span>
     );
@@ -171,11 +159,17 @@ export default function ChecklistDetail({
     };
 
     return (
-      <span className={`text-xs font-medium px-2 py-1 rounded ${styles[priority as keyof typeof styles] || ""}`}>
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded ${
+          styles[priority as keyof typeof styles] || ""
+        }`}
+      >
         Prioridad {priority}
       </span>
     );
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -200,7 +194,9 @@ export default function ChecklistDetail({
         </button>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{checklistId.replace(/-/g, " ")}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {checklistId.replace(/-/g, " ")}
+          </h2>
 
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm mb-2">
@@ -212,7 +208,11 @@ export default function ChecklistDetail({
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all ${
-                  percentage === 100 ? "bg-green-600" : percentage > 0 ? "bg-blue-600" : "bg-gray-400"
+                  percentage === 100
+                    ? "bg-green-600"
+                    : percentage > 0
+                    ? "bg-blue-600"
+                    : "bg-gray-400"
                 }`}
                 style={{ width: `${percentage}%` }}
               ></div>

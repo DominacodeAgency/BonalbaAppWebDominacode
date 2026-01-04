@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface EmployeeExamsProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * EmployeeExams: vista de exámenes para empleados.
+ * Consume la API vía apiFetchAuth (sin props de token/projectId).
+ */
+export default function EmployeeExams() {
+  const { user } = useAuth();
 
-export default function EmployeeExams({ user, accessToken, projectId }: EmployeeExamsProps) {
   const [exams, setExams] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,34 +19,27 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
+    if (!user) return;
+
     try {
       const [examsRes, resultsRes] = await Promise.all([
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams/results`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ).catch(() => ({ ok: false })) // Los no-admin no pueden ver todos los resultados
+        apiFetchAuth<any[]>("/exams", { method: "GET" }),
+        apiFetchAuth<any[]>("/exams/results", { method: "GET" }).catch(
+          () => null
+        ), // no-admin puede fallar
       ]);
 
-      if (examsRes.ok) {
-        const examsData = await examsRes.json();
-        setExams(examsData);
-      }
+      setExams(examsRes);
 
-      // Solo se usará si el usuario es admin
-      if (resultsRes.ok) {
-        const resultsData = await resultsRes.json();
-        setResults(resultsData.filter((r: any) => r.userId === user.id));
+      // Si el endpoint está permitido y devuelve datos, filtramos los del usuario
+      if (resultsRes) {
+        setResults(resultsRes.filter((r: any) => r.userId === user.id));
+      } else {
+        setResults([]);
       }
     } catch (error) {
       console.error("Error fetching exams data:", error);
@@ -66,29 +61,24 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
   };
 
   const submitExam = async () => {
+    if (!selectedExam) return;
+
     if (answers.some((a) => a === -1)) {
       alert("Por favor, responde todas las preguntas antes de enviar");
       return;
     }
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/exams/${selectedExam.id}/submit`,
+      const result = await apiFetchAuth<any>(
+        `/exams/${selectedExam.id}/submit`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
           body: JSON.stringify({ answers }),
         }
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        setLastResult(result);
-        setShowResult(true);
-      }
+      setLastResult(result);
+      setShowResult(true);
     } catch (error) {
       console.error("Error submitting exam:", error);
       alert("Error al enviar el examen");
@@ -102,6 +92,8 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
     setLastResult(null);
     fetchData();
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -122,7 +114,9 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
             ← Volver a exámenes
           </button>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedExam.title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {selectedExam.title}
+            </h2>
             <p className="text-gray-600 mb-4">{selectedExam.description}</p>
             <p className="text-sm text-gray-500">
               {selectedExam.questions.length} preguntas
@@ -178,8 +172,10 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
       <div>
         <div className="mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Examen completado</h2>
-            
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Examen completado
+            </h2>
+
             <div className="mb-6">
               <div
                 className={`text-6xl font-bold mb-2 ${
@@ -193,18 +189,22 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
                 {lastResult.score.toFixed(0)}%
               </div>
               <p className="text-gray-600">
-                Has acertado {lastResult.correct} de {lastResult.total} preguntas
+                Has acertado {lastResult.correct} de {lastResult.total}{" "}
+                preguntas
               </p>
             </div>
 
             {lastResult.score >= 70 ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p className="text-green-800 font-medium">¡Excelente trabajo! Has aprobado el examen.</p>
+                <p className="text-green-800 font-medium">
+                  ¡Excelente trabajo! Has aprobado el examen.
+                </p>
               </div>
             ) : (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <p className="text-red-800 font-medium">
-                  No has alcanzado la puntuación mínima. Puedes volver a realizar el examen.
+                  No has alcanzado la puntuación mínima. Puedes volver a
+                  realizar el examen.
                 </p>
               </div>
             )}
@@ -224,8 +224,12 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Exámenes disponibles</h2>
-        <p className="text-gray-600">Realiza los exámenes asignados por la administración</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Exámenes disponibles
+        </h2>
+        <p className="text-gray-600">
+          Realiza los exámenes asignados por la administración
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -249,7 +253,13 @@ export default function EmployeeExams({ user, accessToken, projectId }: Employee
                 {bestScore !== null && (
                   <>
                     <span>•</span>
-                    <span className={bestScore >= 70 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                    <span
+                      className={
+                        bestScore >= 70
+                          ? "text-green-600 font-medium"
+                          : "text-red-600 font-medium"
+                      }
+                    >
                       Mejor puntuación: {bestScore.toFixed(0)}%
                     </span>
                   </>

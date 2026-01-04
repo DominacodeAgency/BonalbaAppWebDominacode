@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface AdminUsersProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
-
+/**
+ * AdminUsers: gestión de usuarios (crear / listar / eliminar).
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
 const roleLabels: Record<string, string> = {
   admin: "Administrador",
   encargado_cocina: "Encargado de cocina",
@@ -14,30 +14,22 @@ const roleLabels: Record<string, string> = {
   personal_sala: "Personal de sala",
 };
 
-export default function AdminUsers({ user }: AdminUsersProps) {
+export default function AdminUsers() {
+  const { user } = useAuth();
+
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/users`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      }
+      const data = await apiFetchAuth<any[]>("/users", { method: "GET" });
+      setUsers(data);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
@@ -58,26 +50,15 @@ export default function AdminUsers({ user }: AdminUsersProps) {
     };
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/users`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(userData),
-        }
-      );
+      await apiFetchAuth("/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
-      if (response.ok) {
-        setShowModal(false);
-        fetchUsers();
-        alert("Usuario creado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al crear usuario: " + error.error);
-      }
+      setShowModal(false);
+      fetchUsers();
+      alert("Usuario creado correctamente");
     } catch (error) {
       console.error("Error creating user:", error);
       alert("Error al crear usuario");
@@ -85,33 +66,20 @@ export default function AdminUsers({ user }: AdminUsersProps) {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
-      return;
-    }
+    if (!confirm("¿Estás seguro de que deseas eliminar este usuario?")) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/users/${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await apiFetchAuth(`/users/${userId}`, { method: "DELETE" });
 
-      if (response.ok) {
-        fetchUsers();
-        alert("Usuario eliminado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al eliminar usuario: " + error.error);
-      }
+      fetchUsers();
+      alert("Usuario eliminado correctamente");
     } catch (error) {
       console.error("Error deleting user:", error);
       alert("Error al eliminar usuario");
     }
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (

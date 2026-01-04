@@ -3,16 +3,16 @@ import AdminUsers from "./admin/AdminUsers";
 import AdminEquipment from "./admin/AdminEquipment";
 import AdminExams from "./admin/AdminExams";
 import AdminMessages from "./admin/AdminMessages";
+import { useAuth } from "@/auth/AuthContext";
 
 /**
  * AdminPanel: panel de administración (solo admins).
  * Permite cambiar entre secciones: usuarios, equipos, exámenes y mensajes.
+ * Lee el usuario desde AuthContext (sin props).
  */
-interface AdminPanelProps {
-  user: any;
-}
+export default function AdminPanel() {
+  const { user } = useAuth();
 
-export default function AdminPanel({ user }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<
     "users" | "equipment" | "exams" | "messages"
   >("users");
@@ -23,6 +23,9 @@ export default function AdminPanel({ user }: AdminPanelProps) {
     { id: "exams", label: "Exámenes" },
     { id: "messages", label: "Mensajería" },
   ] as const;
+
+  // Mínimo: si no hay user, no renderizamos admin
+  if (!user) return null;
 
   return (
     <div>
@@ -53,10 +56,10 @@ export default function AdminPanel({ user }: AdminPanelProps) {
       </div>
 
       {/* Contenido */}
-      {activeSection === "users" && <AdminUsers user={user} />}
-      {activeSection === "equipment" && <AdminEquipment user={user} />}
-      {activeSection === "exams" && <AdminExams user={user} />}
-      {activeSection === "messages" && <AdminMessages user={user} />}
+      {activeSection === "users" && <AdminUsers />}
+      {activeSection === "equipment" && <AdminEquipment />}
+      {activeSection === "exams" && <AdminExams />}
+      {activeSection === "messages" && <AdminMessages />}
     </div>
   );
 }

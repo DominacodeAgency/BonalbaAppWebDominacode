@@ -1,39 +1,29 @@
 import { useState, useEffect } from "react";
+import { apiFetchAuth } from "@/auth/apiAuth";
+import { useAuth } from "@/auth/AuthContext";
 
-interface IncidenciasProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+export default function Incidencias() {
+  const { user } = useAuth();
 
-export default function Incidencias({ user, accessToken, projectId }: IncidenciasProps) {
   const [incidencias, setIncidencias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("todas");
-  const [selectedIncidencia, setSelectedIncidencia] = useState<any | null>(null);
+  const [selectedIncidencia, setSelectedIncidencia] = useState<any | null>(
+    null
+  );
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusComment, setStatusComment] = useState("");
 
   useEffect(() => {
     fetchIncidencias();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchIncidencias = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/incidencias`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setIncidencias(data);
-      }
+      const data = await apiFetchAuth<any[]>("/incidencias", { method: "GET" });
+      setIncidencias(data);
     } catch (error) {
       console.error("Error fetching incidencias:", error);
     } finally {
@@ -45,25 +35,16 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
     if (!selectedIncidencia || !newStatus) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/incidencias/${selectedIncidencia.id}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ status: newStatus, comment: statusComment }),
-        }
-      );
+      await apiFetchAuth(`/incidencias/${selectedIncidencia.id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus, comment: statusComment }),
+      });
 
-      if (response.ok) {
-        await fetchIncidencias();
-        setShowStatusModal(false);
-        setSelectedIncidencia(null);
-        setNewStatus("");
-        setStatusComment("");
-      }
+      await fetchIncidencias();
+      setShowStatusModal(false);
+      setSelectedIncidencia(null);
+      setNewStatus("");
+      setStatusComment("");
     } catch (error) {
       console.error("Error updating incidencia:", error);
     }
@@ -71,7 +52,7 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
 
   const filteredIncidencias = incidencias.filter((inc) => {
     if (filter === "todas") return true;
-    if (filter === "mias") return inc.userId === user.id;
+    if (filter === "mias") return inc.userId === user?.id;
     return true;
   });
 
@@ -83,7 +64,11 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
     };
 
     return (
-      <span className={`text-xs font-medium px-2 py-1 rounded ${styles[priority as keyof typeof styles] || ""}`}>
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded ${
+          styles[priority as keyof typeof styles] || ""
+        }`}
+      >
         {priority.charAt(0).toUpperCase() + priority.slice(1)}
       </span>
     );
@@ -103,7 +88,11 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
     };
 
     return (
-      <span className={`text-xs font-medium px-2 py-1 rounded ${styles[status as keyof typeof styles] || ""}`}>
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded ${
+          styles[status as keyof typeof styles] || ""
+        }`}
+      >
         {labels[status as keyof typeof labels] || status}
       </span>
     );
@@ -121,7 +110,9 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
     <div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Incidencias</h2>
-        <p className="text-gray-600">Gestiona y da seguimiento a las incidencias reportadas</p>
+        <p className="text-gray-600">
+          Gestiona y da seguimiento a las incidencias reportadas
+        </p>
       </div>
 
       {/* Filters */}
@@ -160,29 +151,43 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-gray-900">{incidencia.title}</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    {incidencia.title}
+                  </h3>
                   {getStatusBadge(incidencia.status)}
                   {getPriorityBadge(incidencia.priority)}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{incidencia.description}</p>
+                <p className="text-sm text-gray-600 mb-2">
+                  {incidencia.description}
+                </p>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span>Reportada por: {incidencia.userName}</span>
                   <span>•</span>
-                  <span>{new Date(incidencia.date).toLocaleString("es-ES")}</span>
+                  <span>
+                    {new Date(incidencia.date).toLocaleString("es-ES")}
+                  </span>
                 </div>
               </div>
             </div>
 
             {incidencia.updates && incidencia.updates.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-2">Historial de actualizaciones:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Historial de actualizaciones:
+                </p>
                 <div className="space-y-2">
                   {incidencia.updates.map((update: any, index: number) => (
-                    <div key={index} className="text-sm text-gray-600 pl-4 border-l-2 border-gray-300">
+                    <div
+                      key={index}
+                      className="text-sm text-gray-600 pl-4 border-l-2 border-gray-300"
+                    >
                       <p className="font-medium">{update.action}</p>
-                      {update.comment && <p className="text-gray-500">{update.comment}</p>}
+                      {update.comment && (
+                        <p className="text-gray-500">{update.comment}</p>
+                      )}
                       <p className="text-xs text-gray-400 mt-1">
-                        {update.user} - {new Date(update.date).toLocaleString("es-ES")}
+                        {update.user} -{" "}
+                        {new Date(update.date).toLocaleString("es-ES")}
                       </p>
                     </div>
                   ))}
@@ -192,7 +197,9 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
 
             {incidencia.photoData && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-2">Foto adjunta:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Foto adjunta:
+                </p>
                 <img
                   src={incidencia.photoData}
                   alt="Incidencia"
@@ -206,12 +213,18 @@ export default function Incidencias({ user, accessToken, projectId }: Incidencia
                 <button
                   onClick={() => {
                     setSelectedIncidencia(incidencia);
-                    setNewStatus(incidencia.status === "abierta" ? "en_proceso" : "resuelta");
+                    setNewStatus(
+                      incidencia.status === "abierta"
+                        ? "en_proceso"
+                        : "resuelta"
+                    );
                     setShowStatusModal(true);
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                 >
-                  {incidencia.status === "abierta" ? "Poner en proceso" : "Marcar como resuelta"}
+                  {incidencia.status === "abierta"
+                    ? "Poner en proceso"
+                    : "Marcar como resuelta"}
                 </button>
               </div>
             )}

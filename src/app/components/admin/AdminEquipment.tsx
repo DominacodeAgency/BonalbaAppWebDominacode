@@ -1,35 +1,29 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface AdminEquipmentProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * AdminEquipment: gestión de equipos (cámaras y freidoras).
+ * Usa AuthContext y apiFetchAuth para llamar a la API sin props de token/projectId.
+ */
+export default function AdminEquipment() {
+  const { user } = useAuth();
 
-export default function AdminEquipment({ user, accessToken, projectId }: AdminEquipmentProps) {
   const [equipment, setEquipment] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchEquipment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchEquipment = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/equipment`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setEquipment(data);
-      }
+      const data = await apiFetchAuth<any[]>("/equipment", {
+        method: "GET",
+      });
+      setEquipment(data);
     } catch (error) {
       console.error("Error fetching equipment:", error);
     } finally {
@@ -47,60 +41,38 @@ export default function AdminEquipment({ user, accessToken, projectId }: AdminEq
     };
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/equipment`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(equipmentData),
-        }
-      );
+      await apiFetchAuth("/equipment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(equipmentData),
+      });
 
-      if (response.ok) {
-        setShowModal(false);
-        fetchEquipment();
-        alert("Equipo creado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al crear equipo: " + error.error);
-      }
-    } catch (error) {
+      setShowModal(false);
+      fetchEquipment();
+      alert("Equipo creado correctamente");
+    } catch (error: any) {
       console.error("Error creating equipment:", error);
       alert("Error al crear equipo");
     }
   };
 
   const handleDeleteEquipment = async (equipmentId: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este equipo?")) {
-      return;
-    }
+    if (!confirm("¿Estás seguro de que deseas eliminar este equipo?")) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/equipment/${equipmentId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      await apiFetchAuth(`/equipment/${equipmentId}`, {
+        method: "DELETE",
+      });
 
-      if (response.ok) {
-        fetchEquipment();
-        alert("Equipo eliminado correctamente");
-      } else {
-        const error = await response.json();
-        alert("Error al eliminar equipo: " + error.error);
-      }
-    } catch (error) {
+      fetchEquipment();
+      alert("Equipo eliminado correctamente");
+    } catch (error: any) {
       console.error("Error deleting equipment:", error);
       alert("Error al eliminar equipo");
     }
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -117,8 +89,12 @@ export default function AdminEquipment({ user, accessToken, projectId }: AdminEq
     <div>
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Gestión de equipos</h3>
-          <p className="text-sm text-gray-600">Gestiona cámaras frigoríficas y freidoras</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Gestión de equipos
+          </h3>
+          <p className="text-sm text-gray-600">
+            Gestiona cámaras frigoríficas y freidoras
+          </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -131,14 +107,22 @@ export default function AdminEquipment({ user, accessToken, projectId }: AdminEq
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cámaras */}
         <div>
-          <h4 className="font-semibold text-gray-900 mb-3">Cámaras frigoríficas</h4>
+          <h4 className="font-semibold text-gray-900 mb-3">
+            Cámaras frigoríficas
+          </h4>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
             {camaras.map((eq) => (
-              <div key={eq.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+              <div
+                key={eq.id}
+                className="p-4 flex items-center justify-between hover:bg-gray-50"
+              >
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{eq.name}</p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Última verificación: {new Date(eq.lastCheck).toLocaleString("es-ES")}
+                    Última verificación:{" "}
+                    {eq.lastCheck
+                      ? new Date(eq.lastCheck).toLocaleString("es-ES")
+                      : "-"}
                   </p>
                 </div>
                 <button
@@ -162,11 +146,17 @@ export default function AdminEquipment({ user, accessToken, projectId }: AdminEq
           <h4 className="font-semibold text-gray-900 mb-3">Freidoras</h4>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
             {freidoras.map((eq) => (
-              <div key={eq.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+              <div
+                key={eq.id}
+                className="p-4 flex items-center justify-between hover:bg-gray-50"
+              >
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{eq.name}</p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Última verificación: {new Date(eq.lastCheck).toLocaleString("es-ES")}
+                    Última verificación:{" "}
+                    {eq.lastCheck
+                      ? new Date(eq.lastCheck).toLocaleString("es-ES")
+                      : "-"}
                   </p>
                 </div>
                 <button

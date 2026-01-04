@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { apiFetchAuth } from "@/auth/apiAuth";
 
-interface APPCCProps {
-  user: any;
-  accessToken: string;
-  projectId: string;
-}
+/**
+ * APPCC: registro de temperaturas y cambios de aceite.
+ * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ */
+export default function APPCC() {
+  const { user } = useAuth();
 
-export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
-  const [activeSection, setActiveSection] = useState<"temperaturas" | "aceites">("temperaturas");
+  const [activeSection, setActiveSection] = useState<
+    "temperaturas" | "aceites"
+  >("temperaturas");
   const [equipment, setEquipment] = useState<any[]>([]);
   const [registros, setRegistros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,31 +26,18 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
     try {
-      const [equipmentRes, registrosRes] = await Promise.all([
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/equipment`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
-        fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/appcc/registros`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        ),
+      const [equipmentData, registrosData] = await Promise.all([
+        apiFetchAuth<any[]>("/equipment", { method: "GET" }),
+        apiFetchAuth<any[]>("/appcc/registros", { method: "GET" }),
       ]);
 
-      if (equipmentRes.ok && registrosRes.ok) {
-        const equipmentData = await equipmentRes.json();
-        const registrosData = await registrosRes.json();
-        setEquipment(equipmentData);
-        setRegistros(registrosData);
-      }
+      setEquipment(equipmentData);
+      setRegistros(registrosData);
     } catch (error) {
       console.error("Error fetching APPCC data:", error);
     } finally {
@@ -58,28 +49,20 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/appcc/temperatura`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            equipmentId: selectedEquipment,
-            temperature: parseFloat(temperature),
-            observations,
-          }),
-        }
-      );
+      await apiFetchAuth("/appcc/temperatura", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipmentId: selectedEquipment,
+          temperature: parseFloat(temperature),
+          observations,
+        }),
+      });
 
-      if (response.ok) {
-        setShowModal(false);
-        resetForm();
-        fetchData();
-        alert("Temperatura registrada correctamente");
-      }
+      setShowModal(false);
+      resetForm();
+      fetchData();
+      alert("Temperatura registrada correctamente");
     } catch (error) {
       console.error("Error registering temperatura:", error);
     }
@@ -89,29 +72,21 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-12488a14/appcc/aceite`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            equipmentId: selectedEquipment,
-            tipo: tipoAceite,
-            motivo: motivoCambio,
-            observations,
-          }),
-        }
-      );
+      await apiFetchAuth("/appcc/aceite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          equipmentId: selectedEquipment,
+          tipo: tipoAceite,
+          motivo: motivoCambio,
+          observations,
+        }),
+      });
 
-      if (response.ok) {
-        setShowModal(false);
-        resetForm();
-        fetchData();
-        alert("Cambio de aceite registrado correctamente");
-      }
+      setShowModal(false);
+      resetForm();
+      fetchData();
+      alert("Cambio de aceite registrado correctamente");
     } catch (error) {
       console.error("Error registering aceite:", error);
     }
@@ -130,9 +105,17 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
 
   const getRecentRegistros = (type: string, equipmentType: string) => {
     return registros
-      .filter((r) => r.type === type && equipment.find((e) => e.id === r.equipmentId && e.type === equipmentType))
+      .filter(
+        (r) =>
+          r.type === type &&
+          equipment.find(
+            (e) => e.id === r.equipmentId && e.type === equipmentType
+          )
+      )
       .slice(0, 5);
   };
+
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -146,7 +129,9 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
     <div>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Control APPCC</h2>
-        <p className="text-gray-600">Registro de temperaturas y cambios de aceite</p>
+        <p className="text-gray-600">
+          Registro de temperaturas y cambios de aceite
+        </p>
       </div>
 
       {/* Section selector */}
@@ -191,28 +176,47 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {getCamaras().map((camara) => {
               const lastRegistro = registros
-                .filter((r) => r.equipmentId === camara.id && r.type === "temperatura")
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                .filter(
+                  (r) => r.equipmentId === camara.id && r.type === "temperatura"
+                )
+                .sort(
+                  (a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                )[0];
 
-              const isOutOfRange = lastRegistro && (lastRegistro.temperature < 0 || lastRegistro.temperature > 4);
+              const isOutOfRange =
+                lastRegistro &&
+                (lastRegistro.temperature < 0 || lastRegistro.temperature > 4);
 
               return (
-                <div key={camara.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">{camara.name}</h3>
-                  
+                <div
+                  key={camara.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                >
+                  <h3 className="font-semibold text-gray-900 mb-3">
+                    {camara.name}
+                  </h3>
+
                   {lastRegistro ? (
                     <div>
                       <div className="flex items-baseline gap-2 mb-2">
-                        <span className={`text-3xl font-bold ${isOutOfRange ? "text-red-600" : "text-green-600"}`}>
+                        <span
+                          className={`text-3xl font-bold ${
+                            isOutOfRange ? "text-red-600" : "text-green-600"
+                          }`}
+                        >
                           {lastRegistro.temperature}°C
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">
-                        Última medición: {new Date(lastRegistro.date).toLocaleString("es-ES")}
+                        Última medición:{" "}
+                        {new Date(lastRegistro.date).toLocaleString("es-ES")}
                       </p>
                       {isOutOfRange && (
                         <div className="mt-2 bg-red-50 border border-red-200 rounded px-2 py-1">
-                          <p className="text-xs text-red-700 font-medium">⚠️ Fuera de rango (0-4°C)</p>
+                          <p className="text-xs text-red-700 font-medium">
+                            ⚠️ Fuera de rango (0-4°C)
+                          </p>
                         </div>
                       )}
                     </div>
@@ -226,31 +230,46 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
 
           {/* Recent registros */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Últimos registros de temperatura</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Últimos registros de temperatura
+            </h3>
             <div className="space-y-3">
               {getRecentRegistros("temperatura", "camara").map((registro) => {
                 const eq = equipment.find((e) => e.id === registro.equipmentId);
-                const isOutOfRange = registro.temperature < 0 || registro.temperature > 4;
+                const isOutOfRange =
+                  registro.temperature < 0 || registro.temperature > 4;
 
                 return (
-                  <div key={registro.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                  <div
+                    key={registro.id}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                  >
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{eq?.name}</p>
                       <p className="text-sm text-gray-500">
-                        {new Date(registro.date).toLocaleString("es-ES")} • {registro.userName}
+                        {new Date(registro.date).toLocaleString("es-ES")} •{" "}
+                        {registro.userName}
                       </p>
                       {registro.observations && (
-                        <p className="text-sm text-gray-600 mt-1">{registro.observations}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {registro.observations}
+                        </p>
                       )}
                     </div>
-                    <span className={`text-lg font-bold ${isOutOfRange ? "text-red-600" : "text-green-600"}`}>
+                    <span
+                      className={`text-lg font-bold ${
+                        isOutOfRange ? "text-red-600" : "text-green-600"
+                      }`}
+                    >
                       {registro.temperature}°C
                     </span>
                   </div>
                 );
               })}
               {getRecentRegistros("temperatura", "camara").length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No hay registros todavía</p>
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No hay registros todavía
+                </p>
               )}
             </div>
           </div>
@@ -273,13 +292,23 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {getFreidoras().map((freidora) => {
               const lastRegistro = registros
-                .filter((r) => r.equipmentId === freidora.id && r.type === "aceite")
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                .filter(
+                  (r) => r.equipmentId === freidora.id && r.type === "aceite"
+                )
+                .sort(
+                  (a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                )[0];
 
               return (
-                <div key={freidora.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">{freidora.name}</h3>
-                  
+                <div
+                  key={freidora.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                >
+                  <h3 className="font-semibold text-gray-900 mb-3">
+                    {freidora.name}
+                  </h3>
+
                   {lastRegistro ? (
                     <div>
                       <p className="text-sm text-gray-600 mb-1">
@@ -302,31 +331,43 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
 
           {/* Recent registros */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Últimos cambios de aceite</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Últimos cambios de aceite
+            </h3>
             <div className="space-y-3">
               {getRecentRegistros("aceite", "freidora").map((registro) => {
                 const eq = equipment.find((e) => e.id === registro.equipmentId);
 
                 return (
-                  <div key={registro.id} className="py-3 border-b border-gray-100 last:border-0">
+                  <div
+                    key={registro.id}
+                    className="py-3 border-b border-gray-100 last:border-0"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <p className="font-medium text-gray-900">{eq?.name}</p>
-                      <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">{registro.tipo}</span>
+                      <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {registro.tipo}
+                      </span>
                     </div>
                     <p className="text-sm text-gray-600">
                       <strong>Motivo:</strong> {registro.motivo}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {new Date(registro.date).toLocaleString("es-ES")} • {registro.userName}
+                      {new Date(registro.date).toLocaleString("es-ES")} •{" "}
+                      {registro.userName}
                     </p>
                     {registro.observations && (
-                      <p className="text-sm text-gray-600 mt-1">{registro.observations}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {registro.observations}
+                      </p>
                     )}
                   </div>
                 );
               })}
               {getRecentRegistros("aceite", "freidora").length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-4">No hay registros todavía</p>
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No hay registros todavía
+                </p>
               )}
             </div>
           </div>
@@ -338,13 +379,24 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-lg mb-4">
-              {activeSection === "temperaturas" ? "Registrar temperatura" : "Registrar cambio de aceite"}
+              {activeSection === "temperaturas"
+                ? "Registrar temperatura"
+                : "Registrar cambio de aceite"}
             </h3>
 
-            <form onSubmit={activeSection === "temperaturas" ? handleSubmitTemperatura : handleSubmitAceite} className="space-y-4">
+            <form
+              onSubmit={
+                activeSection === "temperaturas"
+                  ? handleSubmitTemperatura
+                  : handleSubmitAceite
+              }
+              className="space-y-4"
+            >
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {activeSection === "temperaturas" ? "Cámara frigorífica" : "Freidora"}
+                  {activeSection === "temperaturas"
+                    ? "Cámara frigorífica"
+                    : "Freidora"}
                 </label>
                 <select
                   value={selectedEquipment}
@@ -353,7 +405,10 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="">Seleccionar...</option>
-                  {(activeSection === "temperaturas" ? getCamaras() : getFreidoras()).map((eq) => (
+                  {(activeSection === "temperaturas"
+                    ? getCamaras()
+                    : getFreidoras()
+                  ).map((eq) => (
                     <option key={eq.id} value={eq.id}>
                       {eq.name}
                     </option>
@@ -375,7 +430,9 @@ export default function APPCC({ user, accessToken, projectId }: APPCCProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     placeholder="Ej: 2.5"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Rango óptimo: 0-4°C</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Rango óptimo: 0-4°C
+                  </p>
                 </div>
               ) : (
                 <>
