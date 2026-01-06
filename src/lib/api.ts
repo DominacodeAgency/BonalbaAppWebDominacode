@@ -1,10 +1,10 @@
 /**
  * Cliente API: centraliza la URL base (VITE_API_BASE) y helpers HTTP.
- * Así no repetimos strings y cambiamos el backend en un solo sitio.
- * Ya no recibe token, lo añadirá el cliente autenticado.
+ * Si el backend devuelve 401, limpia token y dispara logout global.
  */
 import { clearToken } from "@/auth/token";
 import { AUTH_ERRORS } from "@/auth/errors";
+import { emitLogout } from "@/auth/authEvents";
 
 const API_BASE = import.meta.env.VITE_API_BASE as string;
 
@@ -13,7 +13,6 @@ if (!API_BASE) {
 }
 
 export function apiUrl(path: string) {
-  // Asegura barras correctas
   const base = API_BASE.replace(/\/+$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
@@ -27,7 +26,6 @@ export async function apiFetch<T>(
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  // Si hay body y no han pasado Content-Type, lo ponemos
   const hasBody = typeof options.body !== "undefined";
   if (hasBody && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -35,9 +33,9 @@ export async function apiFetch<T>(
 
   const res = await fetch(apiUrl(path), { ...options, headers });
 
-  // Si la sesión caduca, limpiamos token y lanzamos un error "con código"
   if (res.status === 401) {
     clearToken();
+    emitLogout();
     throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
   }
 
@@ -48,7 +46,6 @@ export async function apiFetch<T>(
     const msg = data?.error ?? `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  console.log("API_BASE:", API_BASE);
 
   return data as T;
 }

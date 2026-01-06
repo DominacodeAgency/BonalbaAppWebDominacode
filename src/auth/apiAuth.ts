@@ -1,10 +1,8 @@
 /**
- * Fetch autenticado: envuelve apiFetch añadiendo Authorization automáticamente
- * usando el token actual de localStorage. Si hay 401, limpia sesión y emite logout global.
+ * Fetch autenticado: añade Authorization automáticamente usando el token actual.
  */
 import { apiFetch } from "@/lib/api";
-import { clearToken, getToken } from "./token";
-import { emitLogout } from "./authEvents";
+import { getToken } from "./token";
 
 export async function apiFetchAuth<T>(path: string, options: RequestInit = {}) {
   const token = getToken();
@@ -15,14 +13,5 @@ export async function apiFetchAuth<T>(path: string, options: RequestInit = {}) {
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  try {
-    return await apiFetch<T>(path, { ...options, headers });
-  } catch (e: any) {
-    // Si tu apiFetch lanza "HTTP 401" o te devuelve status, ajusta esta condición
-    if (String(e?.message).includes("401")) {
-      clearToken();
-      emitLogout();
-    }
-    throw e;
-  }
+  return apiFetch<T>(path, { ...options, headers });
 }

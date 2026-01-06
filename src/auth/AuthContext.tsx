@@ -2,28 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { apiFetchAuth } from "./apiAuth";
 import { clearToken, getToken, saveToken } from "./token";
-async function refreshMe() {
-  const token = getToken();
-  if (!token) {
-    setUser(null);
-    return;
-  }
-
-  try {
-    const data = await apiFetchAuth<{ user: User }>("/auth/me");
-    setUser(data.user);
-  } catch {
-    // apiFetchAuth ya hará emitLogout() si es 401.
-    // Aquí solo aseguramos estado.
-    setUser(null);
-  }
-}
 import { AUTH_LOGOUT_EVENT } from "./authEvents";
+
 /**
  * Contexto de auth: expone user, loading y acciones de login/logout.
  * Así cualquier componente puede saber si hay sesión sin pasar props.
  */
-type User = {
+export type User = {
   id: string;
   email: string;
   username: string;
@@ -45,6 +30,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  /**
+   * refreshMe: si hay token guardado, consulta /auth/me para recuperar el user.
+   */
   async function refreshMe() {
     const token = getToken();
     if (!token) {
@@ -56,11 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await apiFetchAuth<{ user: User }>("/auth/me");
       setUser(data.user);
     } catch {
-      // apiFetchAuth ya hará emitLogout() si es 401.
-      // Aquí solo aseguramos estado.
+      // apiFetch/apiFetchAuth ya forzarán logout global si es 401.
+      // Aquí solo reflejamos el estado en UI.
       setUser(null);
     }
   }
+
+  /**
+   * login: obtiene accessToken + user y lo guarda en localStorage.
+   */
   async function login(username: string, password: string) {
     const data = await apiFetch<{ user: User; accessToken: string }>(
       "/auth/login",
@@ -73,6 +66,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     saveToken(data.accessToken);
     setUser(data.user);
   }
+
+  /**
+   * logout: borra token y limpia estado local.
+   */
+  function logout() {
+    clearToken();
+    setUser(null);
+  }
+
+  // Escucha logout global (por ejemplo cuando api.ts detecta 401)
   useEffect(() => {
     const onLogout = () => {
       clearToken();
@@ -82,17 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener(AUTH_LOGOUT_EVENT, onLogout);
     return () => window.removeEventListener(AUTH_LOGOUT_EVENT, onLogout);
   }, []);
-  function logout() {
-    clearToken();
-    setUser(null);
-  }
 
-  // Al arrancar la app: si hay token en localStorage, intenta /auth/me
+  // Al arrancar: si hay token, intenta recuperar /auth/me
   useEffect(() => {
     (async () => {
       await refreshMe();
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo<AuthContextValue>(
