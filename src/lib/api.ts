@@ -48,6 +48,7 @@ export async function apiFetch<T>(
     const msg = data?.error ?? `HTTP ${res.status}`;
     throw new Error(msg);
   }
+  console.log("API_BASE:", API_BASE);
 
   return data as T;
 }
