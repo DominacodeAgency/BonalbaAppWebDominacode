@@ -3,31 +3,22 @@ import Dashboard from "./components/Dashboard";
 import { useAuth } from "@/auth/AuthContext";
 
 export default function App() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, login } = useAuth();
 
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <div className="p-6">Cargando...</div>;
 
   if (!user) {
     return (
       <Login
         onLogin={async (username, password) => {
-          try {
-            await login(username, password);
-            return { success: true };
-          } catch (e: any) {
-            return {
-              success: false,
-              error: e?.message || "Error al iniciar sesión",
-            };
-          }
+          await login(username, password);
         }}
-        onInit={async () => {
-          // si ya NO usas inicialización, déjalo vacío
-        }}
+        // si ya NO usas inicialización, deja esto así
+        onInit={async () => {}}
         initializing={false}
       />
     );
   }
 
-  return <Dashboard user={user} onLogout={logout} />;
+  return <Dashboard />;
 }

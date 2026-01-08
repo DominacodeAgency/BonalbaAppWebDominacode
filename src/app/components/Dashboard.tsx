@@ -7,18 +7,17 @@ import Historico from "./Historico";
 import AdminPanel from "./AdminPanel";
 import EmployeeExams from "./EmployeeExams";
 import EmployeeMessages from "./EmployeeMessages";
+import { useAuth } from "@/auth/AuthContext";
 
 /**
- * Dashboard: contenedor principal tras login, muestra pestañas y renderiza secciones.
- * Ya no pasa accessToken/projectId; cada sección usa AuthContext + apiFetchAuth.
+ * Dashboard: contenedor principal tras login.
+ * Lee user/logout desde AuthContext (sin props).
  */
-interface DashboardProps {
-  user: any;
-  onLogout: () => void;
-}
-
-export default function Dashboard({ user, onLogout }: DashboardProps) {
+export default function Dashboard() {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("checklists");
+
+  if (!user) return null;
 
   const canAccessAdmin = user.role === "admin";
 
@@ -34,9 +33,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onLogout={onLogout} />
+      <Header user={user} onLogout={logout} />
 
-      {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8 overflow-x-auto">
@@ -57,7 +55,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "checklists" && <Checklists />}
         {activeTab === "incidencias" && <Incidencias />}
@@ -65,7 +62,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         {activeTab === "historico" && <Historico />}
         {activeTab === "exams" && <EmployeeExams />}
         {activeTab === "messages" && <EmployeeMessages />}
-        {activeTab === "admin" && canAccessAdmin && <AdminPanel user={user} />}
+        {activeTab === "admin" && canAccessAdmin && <AdminPanel />}
       </div>
     </div>
   );

@@ -1,10 +1,6 @@
-/**
- * Cliente API: centraliza la URL base (VITE_API_BASE) y helpers HTTP.
- * Si el backend devuelve 401, limpia token y dispara logout global.
- */
 import { clearToken } from "@/auth/token";
 import { AUTH_ERRORS } from "@/auth/errors";
-import { emitLogout } from "@/auth/authEvents";
+import { AUTH_LOGOUT_EVENT } from "@/auth/authEvents";
 
 const API_BASE = import.meta.env.VITE_API_BASE as string;
 
@@ -33,19 +29,32 @@ export async function apiFetch<T>(
 
   const res = await fetch(apiUrl(path), { ...options, headers });
 
+  // 401 → logout global
   if (res.status === 401) {
     clearToken();
-    emitLogout();
+    window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
     throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+
+  // ✅ Parse seguro (puede venir HTML/texto en 404, 500, etc.)
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!res.ok) {
-    const msg = data?.error ?? `HTTP ${res.status}`;
+    // Si viene JSON con {error}, úsalo. Si no, enseña el texto plano.
+    const msg =
+      data?.error ?? (text ? text.slice(0, 200) : null) ?? `HTTP ${res.status}`;
     throw new Error(msg);
   }
 
-  return data as T;
+  // Si no es JSON pero fue ok, devuelve el texto (raro pero posible)
+  return (data ?? (text as any)) as T;
 }

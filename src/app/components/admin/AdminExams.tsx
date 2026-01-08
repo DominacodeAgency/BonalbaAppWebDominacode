@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { apiFetchAuth } from "@/auth/apiAuth";
+import PageState from "@/components/PageState";
+import { normalizeError } from "@/lib/normalizeError";
 
 /**
  * AdminExams: gestión de exámenes y visualización de resultados.
- * Usa AuthContext + apiFetchAuth (sin props de token/projectId).
+ * - /exams es crítico
+ * - /exams/results es opcional (si falla => [])
  */
 export default function AdminExams() {
   const { user } = useAuth();
@@ -12,6 +15,8 @@ export default function AdminExams() {
   const [exams, setExams] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [questions, setQuestions] = useState<any[]>([
@@ -24,16 +29,22 @@ export default function AdminExams() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      const [examsData, resultsData] = await Promise.all([
-        apiFetchAuth<any[]>("/exams", { method: "GET" }),
-        apiFetchAuth<any[]>("/exams/results", { method: "GET" }),
-      ]);
+    setLoading(true);
+    setError(null);
 
+    try {
+      const examsData = await apiFetchAuth<any[]>("/exams", { method: "GET" });
       setExams(examsData);
-      setResults(resultsData);
-    } catch (error) {
-      console.error("Error fetching exams data:", error);
+
+      const resultsData = await apiFetchAuth<any[]>("/exams/results", {
+        method: "GET",
+      }).catch(() => null);
+
+      setResults(resultsData ?? []);
+    } catch (e) {
+      setError(normalizeError(e, "Error al cargar exámenes"));
+      setExams([]);
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -57,7 +68,6 @@ export default function AdminExams() {
     try {
       await apiFetchAuth("/exams", {
         method: "POST",
-        // NO hace falta Content-Type: apiFetch ya lo añade
         body: JSON.stringify(examData),
       });
 
@@ -65,11 +75,10 @@ export default function AdminExams() {
       setQuestions([
         { question: "", options: ["", "", "", ""], correctAnswer: 0 },
       ]);
-      fetchData();
+      await fetchData();
       alert("Examen creado correctamente");
-    } catch (error: any) {
-      console.error("Error creating exam:", error);
-      alert(error?.message ?? "Error al crear examen");
+    } catch (e) {
+      alert(normalizeError(e, "Error al crear examen"));
     }
   };
 
@@ -102,313 +111,312 @@ export default function AdminExams() {
 
   if (!user) return null;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            Gestión de exámenes
-          </h3>
-          <p className="text-sm text-gray-600">
-            Crea y gestiona exámenes para el personal
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowResultsModal(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-          >
-            Ver resultados
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Crear examen
-          </button>
-        </div>
-      </div>
-
-      {/* Exams list */}
-      <div className="space-y-4">
-        {exams.map((exam) => {
-          const examResults = results.filter((r) => r.examId === exam.id);
-          const avgScore =
-            examResults.length > 0
-              ? examResults.reduce((sum, r) => sum + r.score, 0) /
-                examResults.length
-              : 0;
-
-          return (
-            <div
-              key={exam.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+    <PageState
+      loading={loading}
+      error={error}
+      onRetry={fetchData}
+      title="No se pudieron cargar los exámenes"
+    >
+      <div>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              Gestión de exámenes
+            </h3>
+            <p className="text-sm text-gray-600">
+              Crea y gestiona exámenes para el personal
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowResultsModal(true)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">
-                    {exam.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {exam.description}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {exam.questions.length} preguntas • Creado por{" "}
-                    {exam.createdBy} el{" "}
-                    {new Date(exam.createdAt).toLocaleDateString("es-ES")}
-                  </p>
-                </div>
-              </div>
+              Ver resultados
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Crear examen
+            </button>
+          </div>
+        </div>
 
-              <div className="mt-4 flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Realizaciones:</span>
-                  <span className="font-semibold text-gray-900">
-                    {examResults.length}
-                  </span>
+        {/* Exams list */}
+        <div className="space-y-4">
+          {exams.map((exam) => {
+            const examResults = results.filter((r) => r.examId === exam.id);
+            const avgScore =
+              examResults.length > 0
+                ? examResults.reduce((sum, r) => sum + r.score, 0) /
+                  examResults.length
+                : 0;
+
+            return (
+              <div
+                key={exam.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      {exam.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {exam.description}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {exam.questions.length} preguntas • Creado por{" "}
+                      {exam.createdBy} el{" "}
+                      {new Date(exam.createdAt).toLocaleDateString("es-ES")}
+                    </p>
+                  </div>
                 </div>
-                {examResults.length > 0 && (
+
+                <div className="mt-4 flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Puntuación media:</span>
-                    <span className="font-semibold text-green-600">
-                      {avgScore.toFixed(1)}%
+                    <span className="text-gray-600">Realizaciones:</span>
+                    <span className="font-semibold text-gray-900">
+                      {examResults.length}
                     </span>
                   </div>
+                  {examResults.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">Puntuación media:</span>
+                      <span className="font-semibold text-green-600">
+                        {avgScore.toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {exams.length === 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+              <p className="text-gray-500">No hay exámenes creados</p>
+            </div>
+          )}
+        </div>
+
+        {/* Create exam modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8">
+              <h3 className="font-bold text-lg mb-4">Crear nuevo examen</h3>
+
+              <form onSubmit={handleCreateExam} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título del examen
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    placeholder="Ej: Seguridad alimentaria básica"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    name="description"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    rows={2}
+                    placeholder="Breve descripción del examen..."
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Preguntas
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addQuestion}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      + Añadir pregunta
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {questions.map((q, qIndex) => (
+                      <div
+                        key={qIndex}
+                        className="border border-gray-200 rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-700">
+                            Pregunta {qIndex + 1}
+                          </span>
+                          {questions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeQuestion(qIndex)}
+                              className="text-sm text-red-600 hover:text-red-700"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={q.question}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, "question", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-3"
+                          placeholder="Escribe la pregunta..."
+                          required
+                        />
+
+                        <div className="space-y-2">
+                          {q.options.map((opt: string, optIndex: number) => (
+                            <div
+                              key={optIndex}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                type="radio"
+                                name={`correct-${qIndex}`}
+                                checked={q.correctAnswer === optIndex}
+                                onChange={() =>
+                                  updateQuestion(
+                                    qIndex,
+                                    "correctAnswer",
+                                    optIndex
+                                  )
+                                }
+                                className="text-blue-600"
+                              />
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) =>
+                                  updateOption(qIndex, optIndex, e.target.value)
+                                }
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                                placeholder={`Opción ${optIndex + 1}`}
+                                required
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-2">
+                          Selecciona la opción correcta con el botón radio
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Crear examen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setQuestions([
+                        {
+                          question: "",
+                          options: ["", "", "", ""],
+                          correctAnswer: 0,
+                        },
+                      ]);
+                    }}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Results modal */}
+        {showResultsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">Resultados de exámenes</h3>
+                <button
+                  onClick={() => setShowResultsModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {results.map((result) => {
+                  const exam = exams.find((e) => e.id === result.examId);
+
+                  return (
+                    <div
+                      key={result.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">
+                            {exam?.title}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {result.userName}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(result.date).toLocaleString("es-ES")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`text-2xl font-bold ${
+                              result.score >= 70
+                                ? "text-green-600"
+                                : result.score >= 50
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {result.score.toFixed(0)}%
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {result.correct} / {result.total} correctas
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {results.length === 0 && (
+                  <p className="text-center text-gray-500 py-8">
+                    No hay resultados todavía
+                  </p>
                 )}
               </div>
             </div>
-          );
-        })}
-
-        {exams.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <p className="text-gray-500">No hay exámenes creados</p>
           </div>
         )}
       </div>
-
-      {/* Create exam modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8">
-            <h3 className="font-bold text-lg mb-4">Crear nuevo examen</h3>
-
-            <form onSubmit={handleCreateExam} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Título del examen
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  placeholder="Ej: Seguridad alimentaria básica"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
-                <textarea
-                  name="description"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  rows={2}
-                  placeholder="Breve descripción del examen..."
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Preguntas
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addQuestion}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    + Añadir pregunta
-                  </button>
-                </div>
-
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {questions.map((q, qIndex) => (
-                    <div
-                      key={qIndex}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700">
-                          Pregunta {qIndex + 1}
-                        </span>
-                        {questions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeQuestion(qIndex)}
-                            className="text-sm text-red-600 hover:text-red-700"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-
-                      <input
-                        type="text"
-                        value={q.question}
-                        onChange={(e) =>
-                          updateQuestion(qIndex, "question", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-3"
-                        placeholder="Escribe la pregunta..."
-                        required
-                      />
-
-                      <div className="space-y-2">
-                        {q.options.map((opt: string, optIndex: number) => (
-                          <div
-                            key={optIndex}
-                            className="flex items-center gap-2"
-                          >
-                            <input
-                              type="radio"
-                              name={`correct-${qIndex}`}
-                              checked={q.correctAnswer === optIndex}
-                              onChange={() =>
-                                updateQuestion(
-                                  qIndex,
-                                  "correctAnswer",
-                                  optIndex
-                                )
-                              }
-                              className="text-blue-600"
-                            />
-                            <input
-                              type="text"
-                              value={opt}
-                              onChange={(e) =>
-                                updateOption(qIndex, optIndex, e.target.value)
-                              }
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
-                              placeholder={`Opción ${optIndex + 1}`}
-                              required
-                            />
-                          </div>
-                        ))}
-                      </div>
-
-                      <p className="text-xs text-gray-500 mt-2">
-                        Selecciona la opción correcta con el botón radio
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Crear examen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setQuestions([
-                      {
-                        question: "",
-                        options: ["", "", "", ""],
-                        correctAnswer: 0,
-                      },
-                    ]);
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Results modal */}
-      {showResultsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">Resultados de exámenes</h3>
-              <button
-                onClick={() => setShowResultsModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {results.map((result) => {
-                const exam = exams.find((e) => e.id === result.examId);
-
-                return (
-                  <div
-                    key={result.id}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {exam?.title}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {result.userName}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(result.date).toLocaleString("es-ES")}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p
-                          className={`text-2xl font-bold ${
-                            result.score >= 70
-                              ? "text-green-600"
-                              : result.score >= 50
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {result.score.toFixed(0)}%
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {result.correct} / {result.total} correctas
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {results.length === 0 && (
-                <p className="text-center text-gray-500 py-8">
-                  No hay resultados todavía
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </PageState>
   );
 }

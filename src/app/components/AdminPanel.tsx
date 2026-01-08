@@ -7,8 +7,6 @@ import { useAuth } from "@/auth/AuthContext";
 
 /**
  * AdminPanel: panel de administración (solo admins).
- * Permite cambiar entre secciones: usuarios, equipos, exámenes y mensajes.
- * Lee el usuario desde AuthContext (sin props).
  */
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -24,7 +22,6 @@ export default function AdminPanel() {
     { id: "messages", label: "Mensajería" },
   ] as const;
 
-  // Mínimo: si no hay user, no renderizamos admin
   if (!user) return null;
 
   return (
@@ -36,7 +33,6 @@ export default function AdminPanel() {
         <p className="text-gray-600">Gestión avanzada del sistema</p>
       </div>
 
-      {/* Selector de sección */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="flex flex-wrap gap-2">
           {sections.map((section) => (
@@ -55,7 +51,6 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Contenido */}
       {activeSection === "users" && <AdminUsers />}
       {activeSection === "equipment" && <AdminEquipment />}
       {activeSection === "exams" && <AdminExams />}
