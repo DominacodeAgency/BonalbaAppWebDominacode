@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { normalizeError } from "@/lib/normalizeError";
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -18,32 +19,36 @@ export default function Login({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     setError("");
     setLoading(true);
 
     try {
       await onLogin(username, password);
-    } catch (err: any) {
-      setError(err?.message || "Error al iniciar sesión");
+    } catch (err) {
+      setError(normalizeError(err, "Error al iniciar sesión"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Bonalba</h1>
-            <p className="text-gray-600">Sistema de Gestión Operativa</p>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Bonalba</h1>
+            <p className="text-muted-foreground">
+              Sistema de Gestión Operativa
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-foreground mb-2"
               >
                 Usuario
               </label>
@@ -52,16 +57,19 @@ export default function Login({
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                disabled={loading}
+                className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
+                           focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                 placeholder="admin"
                 required
+                autoComplete="username"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-foreground mb-2"
               >
                 Contraseña
               </label>
@@ -70,14 +78,21 @@ export default function Login({
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                disabled={loading}
+                className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
+                           focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                 placeholder="123456"
                 required
+                autoComplete="current-password"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div
+                role="alert"
+                aria-live="polite"
+                className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm"
+              >
                 {error}
               </div>
             )}
@@ -85,23 +100,28 @@ export default function Login({
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors
+                         disabled:opacity-50 disabled:cursor-not-allowed font-medium
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </button>
           </form>
 
-          {/* Solo se muestra si te lo pasan por props */}
           {onInit && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-800 font-medium mb-2">
+            <div className="mt-8 pt-6 border-t border-border">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                <p className="text-sm text-foreground font-medium mb-2">
                   Primera vez usando la aplicación:
                 </p>
                 <button
-                  onClick={onInit}
+                  onClick={() => {
+                    if (!initializing) onInit();
+                  }}
                   disabled={initializing}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                  className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors
+                             disabled:opacity-50 text-sm font-medium
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {initializing
                     ? "Inicializando..."
@@ -109,14 +129,18 @@ export default function Login({
                 </button>
               </div>
 
-              <div className="text-xs text-gray-500 space-y-2">
-                <p className="font-medium">Usuarios de prueba:</p>
+              <div className="text-xs text-muted-foreground space-y-2">
+                <p className="font-medium text-foreground">
+                  Usuarios de prueba:
+                </p>
                 <div className="space-y-1">
                   <p>
-                    • <strong>admin</strong> / 123456 (Administrador)
+                    • <strong className="text-foreground">admin</strong> /
+                    123456 (Administrador)
                   </p>
                   <p>
-                    • <strong>empleado</strong> / 123456 (Personal de sala)
+                    • <strong className="text-foreground">empleado</strong> /
+                    123456 (Personal de sala)
                   </p>
                 </div>
               </div>

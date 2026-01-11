@@ -67,9 +67,9 @@ export default function Incidencias() {
 
   const getPriorityBadge = (priority: string) => {
     const styles = {
-      alta: "bg-red-100 text-red-700",
-      media: "bg-yellow-100 text-yellow-700",
-      baja: "bg-blue-100 text-blue-700",
+      alta: "bg-[var(--error-bg)] text-[var(--error)]",
+      media: "bg-[var(--warning-bg)] text-[var(--warning)]",
+      baja: "bg-[var(--info-bg)] text-[var(--info)]",
     };
 
     return (
@@ -85,9 +85,9 @@ export default function Incidencias() {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      abierta: "bg-red-100 text-red-700",
-      en_proceso: "bg-yellow-100 text-yellow-700",
-      resuelta: "bg-green-100 text-green-700",
+      abierta: "bg-[var(--error-bg)] text-[var(--error)]",
+      en_proceso: "bg-[var(--warning-bg)] text-[var(--warning)]",
+      resuelta: "bg-[var(--success-bg)] text-[var(--success)]",
     };
 
     const labels = {
@@ -116,31 +116,33 @@ export default function Incidencias() {
     >
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Incidencias</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Incidencias
+          </h2>
+          <p className="text-muted-foreground">
             Gestiona y da seguimiento a las incidencias reportadas
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-4 mb-6">
           <div className="flex gap-2">
             <button
               onClick={() => setFilter("todas")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 filter === "todas"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
               }`}
             >
               Todas
             </button>
             <button
               onClick={() => setFilter("mias")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 filter === "mias"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
               }`}
             >
               Mis incidencias
@@ -153,21 +155,21 @@ export default function Incidencias() {
           {filteredIncidencias.map((incidencia) => (
             <div
               key={incidencia.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-foreground">
                       {incidencia.title}
                     </h3>
                     {getStatusBadge(incidencia.status)}
                     {getPriorityBadge(incidencia.priority)}
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-muted-foreground mb-2">
                     {incidencia.description}
                   </p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Reportada por: {incidencia.userName}</span>
                     <span>•</span>
                     <span>
@@ -178,21 +180,25 @@ export default function Incidencias() {
               </div>
 
               {incidencia.updates && incidencia.updates.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm font-medium text-foreground mb-2">
                     Historial de actualizaciones:
                   </p>
                   <div className="space-y-2">
                     {incidencia.updates.map((update: any, index: number) => (
                       <div
                         key={index}
-                        className="text-sm text-gray-600 pl-4 border-l-2 border-gray-300"
+                        className="text-sm text-muted-foreground pl-4 border-l-2 border-border"
                       >
-                        <p className="font-medium">{update.action}</p>
+                        <p className="font-medium text-foreground">
+                          {update.action}
+                        </p>
                         {update.comment && (
-                          <p className="text-gray-500">{update.comment}</p>
+                          <p className="text-muted-foreground">
+                            {update.comment}
+                          </p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-muted-foreground/70 mt-1">
                           {update.user} -{" "}
                           {new Date(update.date).toLocaleString("es-ES")}
                         </p>
@@ -203,14 +209,14 @@ export default function Incidencias() {
               )}
 
               {incidencia.photoData && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm font-medium text-foreground mb-2">
                     Foto adjunta:
                   </p>
                   <img
                     src={incidencia.photoData}
                     alt="Incidencia"
-                    className="max-w-full h-auto rounded border border-gray-300"
+                    className="max-w-full h-auto rounded border border-border"
                   />
                 </div>
               )}
@@ -227,7 +233,7 @@ export default function Incidencias() {
                       );
                       setShowStatusModal(true);
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-[color:var(--brand-olive-dark)] transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {incidencia.status === "abierta"
                       ? "Poner en proceso"
@@ -240,26 +246,32 @@ export default function Incidencias() {
         </div>
 
         {filteredIncidencias.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <p className="text-gray-500">No hay incidencias reportadas</p>
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+            <p className="text-muted-foreground">
+              No hay incidencias reportadas
+            </p>
           </div>
         )}
 
         {/* Modal cambio de estado */}
         {showStatusModal && selectedIncidencia && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="font-bold text-lg mb-4">Actualizar estado</h3>
-              <p className="text-gray-700 mb-4">{selectedIncidencia.title}</p>
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl max-w-md w-full p-6 border border-border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">
+                Actualizar estado
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {selectedIncidencia.title}
+              </p>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Nuevo estado
                 </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="abierta">Abierta</option>
                   <option value="en_proceso">En proceso</option>
@@ -268,13 +280,13 @@ export default function Incidencias() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Comentario (opcional)
                 </label>
                 <textarea
                   value={statusComment}
                   onChange={(e) => setStatusComment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-input-background text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   rows={3}
                   placeholder="Añade un comentario sobre el cambio..."
                 />
@@ -283,7 +295,7 @@ export default function Incidencias() {
               <div className="flex gap-3">
                 <button
                   onClick={handleChangeStatus}
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-[color:var(--brand-olive-dark)] transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Actualizar
                 </button>
@@ -294,7 +306,7 @@ export default function Incidencias() {
                     setNewStatus("");
                     setStatusComment("");
                   }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                  className="flex-1 bg-muted text-muted-foreground py-2 px-4 rounded-lg hover:bg-muted/80 hover:text-foreground transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Cancelar
                 </button>

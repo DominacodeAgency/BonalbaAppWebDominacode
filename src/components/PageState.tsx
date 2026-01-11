@@ -23,7 +23,11 @@ export default function PageState({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div
+          role="status"
+          aria-label="Cargando"
+          className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"
+        />
       </div>
     );
   }
@@ -31,14 +35,18 @@ export default function PageState({
   if (error) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8 max-w-lg w-full text-center">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-          <p className="text-gray-600 mb-6">{error || description}</p>
+        <div
+          role="alert"
+          aria-live="polite"
+          className="bg-card text-card-foreground border border-border rounded-lg shadow-sm p-8 max-w-lg w-full text-center"
+        >
+          <h3 className="text-lg font-bold text-foreground mb-2">{title}</h3>
+          <p className="text-muted-foreground mb-6">{error || description}</p>
 
           {onRetry && (
             <button
               onClick={onRetry}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Reintentar
             </button>

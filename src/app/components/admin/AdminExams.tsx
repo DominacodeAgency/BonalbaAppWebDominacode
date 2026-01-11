@@ -121,23 +121,23 @@ export default function AdminExams() {
       <div>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               Gestión de exámenes
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Crea y gestiona exámenes para el personal
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowResultsModal(true)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Ver resultados
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Crear examen
             </button>
@@ -157,17 +157,17 @@ export default function AdminExams() {
             return (
               <div
                 key={exam.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-foreground mb-1">
                       {exam.title}
                     </h4>
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       {exam.description}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {exam.questions.length} preguntas • Creado por{" "}
                       {exam.createdBy} el{" "}
                       {new Date(exam.createdAt).toLocaleDateString("es-ES")}
@@ -177,15 +177,19 @@ export default function AdminExams() {
 
                 <div className="mt-4 flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Realizaciones:</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-muted-foreground">
+                      Realizaciones:
+                    </span>
+                    <span className="font-semibold text-foreground">
                       {examResults.length}
                     </span>
                   </div>
                   {examResults.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Puntuación media:</span>
-                      <span className="font-semibold text-green-600">
+                      <span className="text-muted-foreground">
+                        Puntuación media:
+                      </span>
+                      <span className="font-semibold text-[var(--success)]">
                         {avgScore.toFixed(1)}%
                       </span>
                     </div>
@@ -196,40 +200,42 @@ export default function AdminExams() {
           })}
 
           {exams.length === 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-              <p className="text-gray-500">No hay exámenes creados</p>
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+              <p className="text-muted-foreground">No hay exámenes creados</p>
             </div>
           )}
         </div>
 
         {/* Create exam modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8">
-              <h3 className="font-bold text-lg mb-4">Crear nuevo examen</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-2xl w-full p-6 my-8 border border-border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">
+                Crear nuevo examen
+              </h3>
 
               <form onSubmit={handleCreateExam} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Título del examen
                   </label>
                   <input
                     type="text"
                     name="title"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     placeholder="Ej: Seguridad alimentaria básica"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Descripción
                   </label>
                   <textarea
                     name="description"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     rows={2}
                     placeholder="Breve descripción del examen..."
                   />
@@ -237,13 +243,13 @@ export default function AdminExams() {
 
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-foreground">
                       Preguntas
                     </label>
                     <button
                       type="button"
                       onClick={addQuestion}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-sm text-primary hover:opacity-90 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
                     >
                       + Añadir pregunta
                     </button>
@@ -253,17 +259,17 @@ export default function AdminExams() {
                     {questions.map((q, qIndex) => (
                       <div
                         key={qIndex}
-                        className="border border-gray-200 rounded-lg p-4"
+                        className="border border-border rounded-lg p-4 bg-card text-card-foreground"
                       >
                         <div className="flex items-start justify-between mb-3">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium text-foreground">
                             Pregunta {qIndex + 1}
                           </span>
                           {questions.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeQuestion(qIndex)}
-                              className="text-sm text-red-600 hover:text-red-700"
+                              className="text-sm text-destructive hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
                             >
                               Eliminar
                             </button>
@@ -276,7 +282,7 @@ export default function AdminExams() {
                           onChange={(e) =>
                             updateQuestion(qIndex, "question", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none mb-3"
+                          className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border mb-3"
                           placeholder="Escribe la pregunta..."
                           required
                         />
@@ -298,7 +304,7 @@ export default function AdminExams() {
                                     optIndex
                                   )
                                 }
-                                className="text-blue-600"
+                                className="accent-primary"
                               />
                               <input
                                 type="text"
@@ -306,7 +312,7 @@ export default function AdminExams() {
                                 onChange={(e) =>
                                   updateOption(qIndex, optIndex, e.target.value)
                                 }
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                                className="flex-1 px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border text-sm"
                                 placeholder={`Opción ${optIndex + 1}`}
                                 required
                               />
@@ -314,7 +320,7 @@ export default function AdminExams() {
                           ))}
                         </div>
 
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-muted-foreground mt-2">
                           Selecciona la opción correcta con el botón radio
                         </p>
                       </div>
@@ -325,7 +331,7 @@ export default function AdminExams() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Crear examen
                   </button>
@@ -341,7 +347,7 @@ export default function AdminExams() {
                         },
                       ]);
                     }}
-                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="flex-1 bg-secondary text-secondary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Cancelar
                   </button>
@@ -353,13 +359,15 @@ export default function AdminExams() {
 
         {/* Results modal */}
         {showResultsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">Resultados de exámenes</h3>
+                <h3 className="font-bold text-lg text-foreground">
+                  Resultados de exámenes
+                </h3>
                 <button
                   onClick={() => setShowResultsModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-muted-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 py-1"
                 >
                   ✕
                 </button>
@@ -372,17 +380,17 @@ export default function AdminExams() {
                   return (
                     <div
                       key={result.id}
-                      className="border border-gray-200 rounded-lg p-4"
+                      className="border border-border rounded-lg p-4 bg-card text-card-foreground"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {exam?.title}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {result.userName}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {new Date(result.date).toLocaleString("es-ES")}
                           </p>
                         </div>
@@ -390,15 +398,15 @@ export default function AdminExams() {
                           <p
                             className={`text-2xl font-bold ${
                               result.score >= 70
-                                ? "text-green-600"
+                                ? "text-[var(--success)]"
                                 : result.score >= 50
-                                ? "text-yellow-600"
-                                : "text-red-600"
+                                ? "text-[var(--warning)]"
+                                : "text-destructive"
                             }`}
                           >
                             {result.score.toFixed(0)}%
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {result.correct} / {result.total} correctas
                           </p>
                         </div>
@@ -408,7 +416,7 @@ export default function AdminExams() {
                 })}
 
                 {results.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">
+                  <p className="text-center text-muted-foreground py-8">
                     No hay resultados todavía
                   </p>
                 )}

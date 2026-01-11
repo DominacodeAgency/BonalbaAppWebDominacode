@@ -161,32 +161,32 @@ export default function APPCC() {
     >
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Control APPCC
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Registro de temperaturas y cambios de aceite
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-4 mb-6">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveSection("temperaturas")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeSection === "temperaturas"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:opacity-90"
               }`}
             >
               Temperaturas
             </button>
             <button
               onClick={() => setActiveSection("aceites")}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeSection === "aceites"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:opacity-90"
               }`}
             >
               Aceites
@@ -200,7 +200,7 @@ export default function APPCC() {
             <div className="mb-6">
               <button
                 onClick={openModal}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Registrar temperatura
               </button>
@@ -226,9 +226,9 @@ export default function APPCC() {
                 return (
                   <div
                     key={camara.id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                    className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
                   >
-                    <h3 className="font-semibold text-gray-900 mb-3">
+                    <h3 className="font-semibold text-foreground mb-3">
                       {camara.name}
                     </h3>
 
@@ -237,34 +237,38 @@ export default function APPCC() {
                         <div className="flex items-baseline gap-2 mb-2">
                           <span
                             className={`text-3xl font-bold ${
-                              isOutOfRange ? "text-red-600" : "text-green-600"
+                              isOutOfRange
+                                ? "text-destructive"
+                                : "text-[var(--success)]"
                             }`}
                           >
                             {lastRegistro.temperature}°C
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Última medición:{" "}
                           {new Date(lastRegistro.date).toLocaleString("es-ES")}
                         </p>
                         {isOutOfRange && (
-                          <div className="mt-2 bg-red-50 border border-red-200 rounded px-2 py-1">
-                            <p className="text-xs text-red-700 font-medium">
+                          <div className="mt-2 bg-[var(--error-bg)] border border-destructive/30 rounded px-2 py-1">
+                            <p className="text-xs text-destructive font-medium">
                               ⚠️ Fuera de rango (0-4°C)
                             </p>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">Sin registros</p>
+                      <p className="text-sm text-muted-foreground">
+                        Sin registros
+                      </p>
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-foreground mb-4">
                 Últimos registros de temperatura
               </h3>
               <div className="space-y-3">
@@ -278,23 +282,27 @@ export default function APPCC() {
                   return (
                     <div
                       key={registro.id}
-                      className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                      className="flex items-center justify-between py-3 border-b border-border last:border-0"
                     >
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{eq?.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="font-medium text-foreground">
+                          {eq?.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
                           {new Date(registro.date).toLocaleString("es-ES")} •{" "}
                           {registro.userName}
                         </p>
                         {registro.observations && (
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             {registro.observations}
                           </p>
                         )}
                       </div>
                       <span
                         className={`text-lg font-bold ${
-                          isOutOfRange ? "text-red-600" : "text-green-600"
+                          isOutOfRange
+                            ? "text-destructive"
+                            : "text-[var(--success)]"
                         }`}
                       >
                         {registro.temperature}°C
@@ -303,7 +311,7 @@ export default function APPCC() {
                   );
                 })}
                 {getRecentRegistros("temperatura", "camara").length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
+                  <p className="text-sm text-muted-foreground text-center py-4">
                     No hay registros todavía
                   </p>
                 )}
@@ -318,7 +326,7 @@ export default function APPCC() {
             <div className="mb-6">
               <button
                 onClick={openModal}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Registrar cambio de aceite
               </button>
@@ -338,34 +346,40 @@ export default function APPCC() {
                 return (
                   <div
                     key={freidora.id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                    className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
                   >
-                    <h3 className="font-semibold text-gray-900 mb-3">
+                    <h3 className="font-semibold text-foreground mb-3">
                       {freidora.name}
                     </h3>
 
                     {lastRegistro ? (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Último cambio:</strong> {lastRegistro.tipo}
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <strong className="text-foreground">
+                            Último cambio:
+                          </strong>{" "}
+                          {lastRegistro.tipo}
                         </p>
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Motivo:</strong> {lastRegistro.motivo}
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <strong className="text-foreground">Motivo:</strong>{" "}
+                          {lastRegistro.motivo}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-muted-foreground mt-2">
                           {new Date(lastRegistro.date).toLocaleString("es-ES")}
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">Sin registros</p>
+                      <p className="text-sm text-muted-foreground">
+                        Sin registros
+                      </p>
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-foreground mb-4">
                 Últimos cambios de aceite
               </h3>
               <div className="space-y-3">
@@ -377,23 +391,26 @@ export default function APPCC() {
                   return (
                     <div
                       key={registro.id}
-                      className="py-3 border-b border-gray-100 last:border-0"
+                      className="py-3 border-b border-border last:border-0"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-gray-900">{eq?.name}</p>
-                        <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        <p className="font-medium text-foreground">
+                          {eq?.name}
+                        </p>
+                        <span className="text-sm bg-accent text-accent-foreground px-2 py-1 rounded">
                           {registro.tipo}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        <strong>Motivo:</strong> {registro.motivo}
+                      <p className="text-sm text-muted-foreground">
+                        <strong className="text-foreground">Motivo:</strong>{" "}
+                        {registro.motivo}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {new Date(registro.date).toLocaleString("es-ES")} •{" "}
                         {registro.userName}
                       </p>
                       {registro.observations && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {registro.observations}
                         </p>
                       )}
@@ -401,7 +418,7 @@ export default function APPCC() {
                   );
                 })}
                 {getRecentRegistros("aceite", "freidora").length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">
+                  <p className="text-sm text-muted-foreground text-center py-4">
                     No hay registros todavía
                   </p>
                 )}
@@ -412,17 +429,17 @@ export default function APPCC() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-              <h3 className="font-bold text-lg mb-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto border border-border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">
                 {activeSection === "temperaturas"
                   ? "Registrar temperatura"
                   : "Registrar cambio de aceite"}
               </h3>
 
               {submitError && (
-                <div className="mb-4 bg-red-50 border border-red-200 rounded p-3">
-                  <p className="text-sm text-red-700">{submitError}</p>
+                <div className="mb-4 bg-[var(--error-bg)] border border-destructive/30 rounded p-3">
+                  <p className="text-sm text-destructive">{submitError}</p>
                 </div>
               )}
 
@@ -435,7 +452,7 @@ export default function APPCC() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     {activeSection === "temperaturas"
                       ? "Cámara frigorífica"
                       : "Freidora"}
@@ -444,7 +461,7 @@ export default function APPCC() {
                     value={selectedEquipment}
                     onChange={(e) => setSelectedEquipment(e.target.value)}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                   >
                     <option value="">Seleccionar...</option>
                     {(activeSection === "temperaturas"
@@ -460,7 +477,7 @@ export default function APPCC() {
 
                 {activeSection === "temperaturas" ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Temperatura (°C)
                     </label>
                     <input
@@ -469,23 +486,23 @@ export default function APPCC() {
                       value={temperature}
                       onChange={(e) => setTemperature(e.target.value)}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                       placeholder="Ej: 2.5"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Rango óptimo: 0-4°C
                     </p>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Tipo de aceite
                       </label>
                       <select
                         value={tipoAceite}
                         onChange={(e) => setTipoAceite(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                       >
                         <option value="girasol">Girasol</option>
                         <option value="oliva">Oliva</option>
@@ -494,7 +511,7 @@ export default function APPCC() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Motivo del cambio
                       </label>
                       <input
@@ -502,7 +519,7 @@ export default function APPCC() {
                         value={motivoCambio}
                         onChange={(e) => setMotivoCambio(e.target.value)}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                         placeholder="Ej: Cambio programado, color oscuro..."
                       />
                     </div>
@@ -510,13 +527,13 @@ export default function APPCC() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Observaciones (opcional)
                   </label>
                   <textarea
                     value={observations}
                     onChange={(e) => setObservations(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     rows={3}
                     placeholder="Añade observaciones..."
                   />
@@ -526,7 +543,7 @@ export default function APPCC() {
                   <button
                     type="submit"
                     disabled={submitLoading}
-                    className="flex-1 bg-blue-600 disabled:opacity-60 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="flex-1 bg-primary disabled:opacity-60 text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {submitLoading ? "Guardando..." : "Registrar"}
                   </button>
@@ -534,7 +551,7 @@ export default function APPCC() {
                     type="button"
                     onClick={closeModal}
                     disabled={submitLoading}
-                    className="flex-1 bg-gray-200 disabled:opacity-60 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="flex-1 bg-secondary disabled:opacity-60 text-secondary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Cancelar
                   </button>

@@ -90,16 +90,16 @@ export default function AdminEquipment() {
       <div>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               Gestión de equipos
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Gestiona cámaras frigoríficas y freidoras
             </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Añadir equipo
           </button>
@@ -108,18 +108,18 @@ export default function AdminEquipment() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Cámaras */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-3">
+            <h4 className="font-semibold text-foreground mb-3">
               Cámaras frigoríficas
             </h4>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border divide-y divide-border">
               {camaras.map((eq) => (
                 <div
                   key={eq.id}
-                  className="p-4 flex items-center justify-between hover:bg-gray-50"
+                  className="p-4 flex items-center justify-between hover:bg-muted/50"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{eq.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="font-medium text-foreground">{eq.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Última verificación:{" "}
                       {eq.lastCheck
                         ? new Date(eq.lastCheck).toLocaleString("es-ES")
@@ -128,14 +128,14 @@ export default function AdminEquipment() {
                   </div>
                   <button
                     onClick={() => handleDeleteEquipment(eq.id)}
-                    className="ml-4 text-red-600 hover:text-red-900 text-sm font-medium"
+                    className="ml-4 text-destructive hover:opacity-90 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
                   >
                     Eliminar
                   </button>
                 </div>
               ))}
               {camaras.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-muted-foreground">
                   No hay cámaras registradas
                 </div>
               )}
@@ -144,16 +144,16 @@ export default function AdminEquipment() {
 
           {/* Freidoras */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-3">Freidoras</h4>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
+            <h4 className="font-semibold text-foreground mb-3">Freidoras</h4>
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border divide-y divide-border">
               {freidoras.map((eq) => (
                 <div
                   key={eq.id}
-                  className="p-4 flex items-center justify-between hover:bg-gray-50"
+                  className="p-4 flex items-center justify-between hover:bg-muted/50"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{eq.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="font-medium text-foreground">{eq.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Última verificación:{" "}
                       {eq.lastCheck
                         ? new Date(eq.lastCheck).toLocaleString("es-ES")
@@ -162,14 +162,14 @@ export default function AdminEquipment() {
                   </div>
                   <button
                     onClick={() => handleDeleteEquipment(eq.id)}
-                    className="ml-4 text-red-600 hover:text-red-900 text-sm font-medium"
+                    className="ml-4 text-destructive hover:opacity-90 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
                   >
                     Eliminar
                   </button>
                 </div>
               ))}
               {freidoras.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-muted-foreground">
                   No hay freidoras registradas
                 </div>
               )}
@@ -179,19 +179,21 @@ export default function AdminEquipment() {
 
         {/* Create equipment modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="font-bold text-lg mb-4">Añadir nuevo equipo</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-md w-full p-6 border border-border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">
+                Añadir nuevo equipo
+              </h3>
 
               <form onSubmit={handleCreateEquipment} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Tipo de equipo
                   </label>
                   <select
                     name="type"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                   >
                     <option value="">Seleccionar tipo...</option>
                     <option value="camara">Cámara frigorífica</option>
@@ -200,14 +202,14 @@ export default function AdminEquipment() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Nombre del equipo
                   </label>
                   <input
                     type="text"
                     name="name"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     placeholder="Ej: Cámara frigorífica 3"
                   />
                 </div>
@@ -215,14 +217,14 @@ export default function AdminEquipment() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Crear equipo
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="flex-1 bg-secondary text-secondary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Cancelar
                   </button>

@@ -80,23 +80,23 @@ export default function AdminMessages() {
       <div>
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               Mensajería
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Envía mensajes personalizados a los empleados
             </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Nuevo mensaje
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h4 className="font-semibold text-gray-900 mb-4">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+          <h4 className="font-semibold text-foreground mb-4">
             Mensajes enviados
           </h4>
 
@@ -107,25 +107,25 @@ export default function AdminMessages() {
               return (
                 <div
                   key={message.id}
-                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="p-4 border border-border rounded-lg hover:bg-muted/50"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900">
+                      <h5 className="font-medium text-foreground">
                         {message.subject}
                       </h5>
-                      <p className="text-sm text-gray-600 line-clamp-1 mt-1">
+                      <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
                         {message.message}
                       </p>
                     </div>
                     {message.read && (
-                      <span className="text-xs text-green-600 font-medium">
+                      <span className="text-xs text-[var(--success)] font-medium">
                         Leído
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>
                       Para:{" "}
                       {message.recipientId === "all"
@@ -142,7 +142,7 @@ export default function AdminMessages() {
             })}
 
             {messages.length === 0 && (
-              <p className="text-center text-gray-500 py-8">
+              <p className="text-center text-muted-foreground py-8">
                 No has enviado mensajes todavía
               </p>
             )}
@@ -151,19 +151,21 @@ export default function AdminMessages() {
 
         {/* Send message modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="font-bold text-lg mb-4">Enviar mensaje</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-md w-full p-6 border border-border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">
+                Enviar mensaje
+              </h3>
 
               <form onSubmit={handleSendMessage} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Destinatario
                   </label>
                   <select
                     name="recipientId"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                   >
                     <option value="">Seleccionar destinatario...</option>
                     <option value="all">Todos los empleados</option>
@@ -178,26 +180,26 @@ export default function AdminMessages() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Asunto
                   </label>
                   <input
                     type="text"
                     name="subject"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     placeholder="Asunto del mensaje"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Mensaje
                   </label>
                   <textarea
                     name="message"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-border bg-input-background text-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-border"
                     rows={6}
                     placeholder="Escribe tu mensaje..."
                   />
@@ -206,14 +208,14 @@ export default function AdminMessages() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Enviar mensaje
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    className="flex-1 bg-secondary text-secondary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Cancelar
                   </button>

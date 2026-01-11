@@ -55,9 +55,9 @@ export default function Historico() {
 
   const getTypeBadge = (type: string) => {
     const styles = {
-      checklist: "bg-blue-100 text-blue-700",
-      incidencia: "bg-red-100 text-red-700",
-      appcc: "bg-green-100 text-green-700",
+      checklist: "bg-[var(--info-bg)] text-[var(--info)]",
+      incidencia: "bg-[var(--error-bg)] text-[var(--error)]",
+      appcc: "bg-[var(--success-bg)] text-[var(--success)]",
     };
 
     const labels = {
@@ -69,7 +69,8 @@ export default function Historico() {
     return (
       <span
         className={`text-xs font-medium px-2 py-1 rounded ${
-          styles[type as keyof typeof styles] || "bg-gray-100 text-gray-700"
+          styles[type as keyof typeof styles] ||
+          "bg-muted text-muted-foreground"
         }`}
       >
         {labels[type as keyof typeof labels] || type}
@@ -86,45 +87,49 @@ export default function Historico() {
     >
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Histórico de actividades
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Registro completo de todas las operaciones
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-600 mb-1">Total registros</p>
-            <p className="text-3xl font-bold text-gray-900">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+            <p className="text-sm text-muted-foreground mb-1">
+              Total registros
+            </p>
+            <p className="text-3xl font-bold text-foreground">
               {historico.length}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-600 mb-1">Tareas completadas</p>
-            <p className="text-3xl font-bold text-green-600">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+            <p className="text-sm text-muted-foreground mb-1">
+              Tareas completadas
+            </p>
+            <p className="text-3xl font-bold text-[var(--success)]">
               {completedTasks}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-600 mb-1">Incidencias</p>
-            <p className="text-3xl font-bold text-red-600">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+            <p className="text-sm text-muted-foreground mb-1">Incidencias</p>
+            <p className="text-3xl font-bold text-destructive">
               {totalIncidencias}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-600 mb-1">Esta semana</p>
-            <p className="text-3xl font-bold text-blue-600">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+            <p className="text-sm text-muted-foreground mb-1">Esta semana</p>
+            <p className="text-3xl font-bold text-primary">
               {thisWeekItems.length}
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-4 mb-6">
           <div className="flex flex-wrap gap-2">
             {[
               ["todos", "Todos"],
@@ -135,10 +140,10 @@ export default function Historico() {
               <button
                 key={id}
                 onClick={() => setTypeFilter(id)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   typeFilter === id
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
                 }`}
               >
                 {label}
@@ -147,8 +152,8 @@ export default function Historico() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+          <h3 className="font-semibold text-foreground mb-4">
             Actividad reciente
           </h3>
 
@@ -156,41 +161,46 @@ export default function Historico() {
             {filteredHistorico.map((item) => (
               <div
                 key={item.id}
-                className="flex gap-4 pb-4 border-b border-gray-100 last:border-0"
+                className="flex gap-4 pb-4 border-b border-border/50 last:border-0"
               >
-                <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-blue-600"></div>
+                <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     {getTypeBadge(item.type)}
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-foreground">
                       {item.action}
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-1">
-                    Por <strong>{item.user}</strong>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Por <strong className="text-foreground">{item.user}</strong>
                   </p>
 
                   {item.observations && (
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Observaciones:</strong> {item.observations}
+                    <p className="text-sm text-muted-foreground mb-1">
+                      <strong className="text-foreground">
+                        Observaciones:
+                      </strong>{" "}
+                      {item.observations}
                     </p>
                   )}
 
                   {item.temperature && (
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Temperatura:</strong> {item.temperature}°C
+                    <p className="text-sm text-muted-foreground mb-1">
+                      <strong className="text-foreground">Temperatura:</strong>{" "}
+                      {item.temperature}°C
                     </p>
                   )}
 
                   {item.title && (
-                    <p className="text-sm text-gray-600 mb-1">
-                      <strong>Título:</strong> {item.title}
+                    <p className="text-sm text-muted-foreground mb-1">
+                      <strong className="text-foreground">Título:</strong>{" "}
+                      {item.title}
                     </p>
                   )}
 
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {new Date(item.date).toLocaleString("es-ES")}
                   </p>
                 </div>
@@ -199,7 +209,7 @@ export default function Historico() {
           </div>
 
           {filteredHistorico.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-8">
+            <p className="text-sm text-muted-foreground text-center py-8">
               No hay actividades registradas
             </p>
           )}

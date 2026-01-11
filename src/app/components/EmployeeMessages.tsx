@@ -59,8 +59,8 @@ export default function EmployeeMessages() {
     >
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Mensajes</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Mensajes</h2>
+          <p className="text-muted-foreground">
             Mensajes de la administración • {unreadCount} sin leer
           </p>
         </div>
@@ -70,29 +70,29 @@ export default function EmployeeMessages() {
             <div
               key={message.id}
               onClick={() => openMessage(message)}
-              className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow ${
-                !message.read ? "border-l-4 border-l-blue-600" : ""
+              className={`bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 cursor-pointer hover:shadow-md transition-shadow ${
+                !message.read ? "border-l-4 border-l-primary" : ""
               }`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-foreground">
                       {message.subject}
                     </h3>
                     {!message.read && (
-                      <span className="bg-blue-600 text-white text-xs font-medium px-2 py-1 rounded">
+                      <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded">
                         Nuevo
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
                     {message.message}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-gray-500 mt-3">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
                 <span>De: {message.senderName}</span>
                 <span>•</span>
                 <span>{new Date(message.date).toLocaleString("es-ES")}</span>
@@ -102,28 +102,31 @@ export default function EmployeeMessages() {
         </div>
 
         {messages.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <p className="text-gray-500">No tienes mensajes</p>
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+            <p className="text-muted-foreground">No tienes mensajes</p>
           </div>
         )}
 
         {selectedMessage && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl max-w-2xl w-full p-6 border border-border">
               <div className="flex items-start justify-between mb-4">
-                <h3 className="font-bold text-lg">{selectedMessage.subject}</h3>
+                <h3 className="font-bold text-lg text-foreground">
+                  {selectedMessage.subject}
+                </h3>
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mb-4 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="mb-4 pb-4 border-b border-border">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>
-                    <strong>De:</strong> {selectedMessage.senderName}
+                    <strong className="text-foreground">De:</strong>{" "}
+                    {selectedMessage.senderName}
                   </span>
                   <span>•</span>
                   <span>
@@ -133,7 +136,7 @@ export default function EmployeeMessages() {
               </div>
 
               <div className="prose max-w-none">
-                <p className="text-gray-900 whitespace-pre-wrap">
+                <p className="text-foreground whitespace-pre-wrap">
                   {selectedMessage.message}
                 </p>
               </div>
@@ -141,7 +144,7 @@ export default function EmployeeMessages() {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Cerrar
                 </button>

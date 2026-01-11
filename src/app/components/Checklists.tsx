@@ -61,10 +61,10 @@ export default function Checklists() {
     >
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Checklists diarias
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Gestiona las tareas de apertura y cierre
           </p>
         </div>
@@ -79,20 +79,20 @@ export default function Checklists() {
             return (
               <div
                 key={checklist.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => setSelectedChecklist(checklist.id)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-foreground mb-1">
                       {checklist.name}
                     </h3>
-                    <p className="text-sm text-gray-500 capitalize">
+                    <p className="text-sm text-muted-foreground capitalize">
                       {checklist.type} • {checklist.shift}
                     </p>
                   </div>
                   {checklist.incidencias > 0 && (
-                    <span className="bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded">
+                    <span className="bg-[var(--error-bg)] text-destructive text-xs font-medium px-2 py-1 rounded">
                       {checklist.incidencias} incidencia
                       {checklist.incidencias !== 1 ? "s" : ""}
                     </span>
@@ -102,34 +102,34 @@ export default function Checklists() {
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-gray-600">Progreso</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-muted-foreground">Progreso</span>
+                      <span className="font-medium text-foreground">
                         {completed} / {total} tareas
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${
                           percentage === 100
-                            ? "bg-green-600"
+                            ? "bg-[var(--success)]"
                             : percentage > 0
-                            ? "bg-blue-600"
-                            : "bg-gray-400"
+                            ? "bg-primary"
+                            : "bg-muted-foreground/40"
                         }`}
                         style={{ width: `${percentage}%` }}
                       ></div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <span className="text-sm text-gray-500">
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <span className="text-sm text-muted-foreground">
                       {percentage === 100
                         ? "Completado"
                         : percentage > 0
                         ? "En progreso"
                         : "Pendiente"}
                     </span>
-                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                    <button className="text-sm font-medium text-primary hover:opacity-90">
                       Ver detalle →
                     </button>
                   </div>
@@ -140,8 +140,10 @@ export default function Checklists() {
         </div>
 
         {checklists.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <p className="text-gray-500">No hay checklists disponibles</p>
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+            <p className="text-muted-foreground">
+              No hay checklists disponibles
+            </p>
           </div>
         )}
       </div>

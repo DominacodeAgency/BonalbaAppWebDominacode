@@ -114,16 +114,19 @@ export default function EmployeeExams() {
           <div className="mb-6">
             <button
               onClick={() => setSelectedExam(null)}
-              className="text-blue-600 hover:text-blue-700 font-medium mb-4"
+              className="text-primary hover:opacity-90 font-medium mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
             >
               ← Volver a exámenes
             </button>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 {selectedExam.title}
               </h2>
-              <p className="text-gray-600 mb-4">{selectedExam.description}</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-foreground mb-4">
+                {selectedExam.description}
+              </p>
+              <p className="text-sm text-muted-foreground">
                 {selectedExam.questions.length} preguntas
               </p>
             </div>
@@ -133,9 +136,9 @@ export default function EmployeeExams() {
             {selectedExam.questions.map((q: any, qIndex: number) => (
               <div
                 key={qIndex}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
               >
-                <h3 className="font-semibold text-gray-900 mb-4">
+                <h3 className="font-semibold text-foreground mb-4">
                   {qIndex + 1}. {q.question}
                 </h3>
 
@@ -143,16 +146,16 @@ export default function EmployeeExams() {
                   {q.options.map((option: string, optIndex: number) => (
                     <label
                       key={optIndex}
-                      className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer"
                     >
                       <input
                         type="radio"
                         name={`question-${qIndex}`}
                         checked={answers[qIndex] === optIndex}
                         onChange={() => handleAnswerChange(qIndex, optIndex)}
-                        className="w-4 h-4 text-blue-600"
+                        className="w-4 h-4 accent-[var(--primary)]"
                       />
-                      <span className="text-gray-900">{option}</span>
+                      <span className="text-foreground">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -163,7 +166,7 @@ export default function EmployeeExams() {
           <div className="mt-6 flex justify-end">
             <button
               onClick={submitExam}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Enviar examen
             </button>
@@ -174,8 +177,8 @@ export default function EmployeeExams() {
       {showResult && lastResult && (
         <div>
           <div className="mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8 text-center">
+              <h2 className="text-2xl font-bold text-foreground mb-4">
                 Examen completado
               </h2>
 
@@ -183,29 +186,29 @@ export default function EmployeeExams() {
                 <div
                   className={`text-6xl font-bold mb-2 ${
                     lastResult.score >= 70
-                      ? "text-green-600"
+                      ? "text-[var(--success)]"
                       : lastResult.score >= 50
-                      ? "text-yellow-600"
-                      : "text-red-600"
+                      ? "text-[var(--warning)]"
+                      : "text-destructive"
                   }`}
                 >
                   {lastResult.score.toFixed(0)}%
                 </div>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   Has acertado {lastResult.correct} de {lastResult.total}{" "}
                   preguntas
                 </p>
               </div>
 
               {lastResult.score >= 70 ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                  <p className="text-green-800 font-medium">
+                <div className="bg-[var(--success-bg)] border border-[var(--success)]/30 rounded-lg p-4 mb-6">
+                  <p className="text-foreground font-medium">
                     ¡Excelente trabajo! Has aprobado el examen.
                   </p>
                 </div>
               ) : (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                  <p className="text-red-800 font-medium">
+                <div className="bg-[var(--error-bg)] border border-destructive/30 rounded-lg p-4 mb-6">
+                  <p className="text-foreground font-medium">
                     No has alcanzado la puntuación mínima. Puedes volver a
                     realizar el examen.
                   </p>
@@ -214,7 +217,7 @@ export default function EmployeeExams() {
 
               <button
                 onClick={closeExam}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Volver a exámenes
               </button>
@@ -226,10 +229,10 @@ export default function EmployeeExams() {
       {!selectedExam && !showResult && (
         <div>
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               Exámenes disponibles
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Realiza los exámenes asignados por la administración
             </p>
           </div>
@@ -245,16 +248,16 @@ export default function EmployeeExams() {
               return (
                 <div
                   key={exam.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                  className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
                 >
-                  <h3 className="font-semibold text-gray-900 mb-2">
+                  <h3 className="font-semibold text-foreground mb-2">
                     {exam.title}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {exam.description}
                   </p>
 
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                     <span>{exam.questions.length} preguntas</span>
                     {bestScore !== null && (
                       <>
@@ -262,8 +265,8 @@ export default function EmployeeExams() {
                         <span
                           className={
                             bestScore >= 70
-                              ? "text-green-600 font-medium"
-                              : "text-red-600 font-medium"
+                              ? "text-[var(--success)] font-medium"
+                              : "text-destructive font-medium"
                           }
                         >
                           Mejor puntuación: {bestScore.toFixed(0)}%
@@ -274,7 +277,7 @@ export default function EmployeeExams() {
 
                   <button
                     onClick={() => startExam(exam)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {bestScore !== null ? "Repetir examen" : "Realizar examen"}
                   </button>
@@ -284,8 +287,10 @@ export default function EmployeeExams() {
           </div>
 
           {exams.length === 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-              <p className="text-gray-500">No hay exámenes disponibles</p>
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+              <p className="text-muted-foreground">
+                No hay exámenes disponibles
+              </p>
             </div>
           )}
         </div>
