@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api"; // ajusta si tu api.ts está en otra ruta
+import { apiFetch } from "@/lib/api";
 import { normalizeError } from "@/lib/normalizeError";
 import loginBg from "@/app/assets/FondoLoginRegister.png";
 
@@ -17,9 +17,6 @@ interface RegisterProps {
 }
 
 function isAllowedEmail(email: string) {
-  // Reglas: @gmail o @hotmail + (.com o .es)
-  // Ejemplos válidos:
-  //   pepe@gmail.com, pepe@gmail.es, pepe@hotmail.com, pepe@hotmail.es
   const re = /^[^\s@]+@(gmail|hotmail)\.(com|es)$/i;
   return re.test(email.trim());
 }
@@ -35,11 +32,83 @@ function passwordStrengthErrors(pw: string) {
   return errors;
 }
 
+function normalizeEsPhone(input: string) {
+  const raw = (input || "").trim();
+  if (!raw) return "";
+
+  // Asegura prefijo +34
+  let v = raw.startsWith("+34") ? raw : `+34 ${raw}`;
+
+  // Conserva +34 y extrae dígitos restantes
+  const digits = v.replace(/[^\d]/g, ""); // solo dígitos
+  // digits empieza por 34 si venía con +34, si no lo añadimos arriba
+  const rest = digits.startsWith("34") ? digits.slice(2) : digits;
+
+  // Si no hay nada tras +34, devolvemos "+34"
+  return rest ? `+34${rest}` : "+34";
+}
+
+function EyeIcon({ off }: { off?: boolean }) {
+  // SVG sencillo estilo "ojo" (on/off)
+  return off ? (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 3l18 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.88 5.1A10.5 10.5 0 0121 12c-.64 1.33-1.5 2.53-2.54 3.52M6.11 6.11A10.55 10.55 0 003 12c1.5 3.11 4.5 6 9 6 1.05 0 2.03-.16 2.94-.46"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ) : (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
 export default function Register({ onBackToLogin }: RegisterProps) {
   const [nombre, setNombre] = useState("");
   const [apellidos, setApellidos] = useState("");
   const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
+
+  // ✅ Teléfono empieza siempre por +34
+  const [telefono, setTelefono] = useState("+34 ");
+
   const [direccion, setDireccion] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +132,6 @@ export default function Register({ onBackToLogin }: RegisterProps) {
 
     setError("");
 
-    // validaciones front (por si el usuario forza)
     if (!isAllowedEmail(email)) {
       setError("El correo debe ser @gmail.com/.es o @hotmail.com/.es");
       return;
@@ -73,20 +141,23 @@ export default function Register({ onBackToLogin }: RegisterProps) {
       return;
     }
 
+    // ✅ normaliza el teléfono (si el usuario no puso nada más que +34, lo tratamos como null)
+    const phoneNormalized = normalizeEsPhone(telefono);
+    const phoneForPayload =
+      phoneNormalized && phoneNormalized !== "+34" ? phoneNormalized : null;
+
     const payload: RegisterPayload = {
       nombre: nombre.trim(),
       apellidos: apellidos.trim(),
       email: email.trim().toLowerCase(),
       direccion: direccion.trim(),
       password,
-      telefono: telefono.trim() ? telefono.trim() : null,
+      telefono: phoneForPayload,
     };
 
     try {
       setLoading(true);
 
-      // 👇 Ajusta el endpoint a tu backend:
-      // ejemplo típico: POST /auth/register
       await apiFetch<{ ok: boolean }>("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -156,7 +227,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-                    placeholder="Rafa"
+                    placeholder="Nombre"
                     required
                     autoComplete="given-name"
                   />
@@ -172,7 +243,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-                    placeholder="Reina Ferrández"
+                    placeholder="Apellidos"
                     required
                     autoComplete="family-name"
                   />
@@ -180,7 +251,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Correo (solo Gmail/Hotmail .com/.es)
+                    Correo
                   </label>
                   <input
                     value={email}
@@ -188,7 +259,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-                    placeholder="usuario@gmail.com"
+                    placeholder="Correo electrónico"
                     required
                     autoComplete="email"
                     inputMode="email"
@@ -206,7 +277,26 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                   </label>
                   <input
                     value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+
+                      // ✅ impide que borren el +34
+                      if (!v.startsWith("+34")) {
+                        setTelefono("+34 ");
+                        return;
+                      }
+                      // si se queda en "+34" sin espacio, lo normalizamos a "+34 "
+                      if (v === "+34") {
+                        setTelefono("+34 ");
+                        return;
+                      }
+                      setTelefono(v);
+                    }}
+                    onBlur={() => {
+                      // ✅ si el usuario deja algo raro, lo reajustamos
+                      if (!telefono.startsWith("+34")) setTelefono("+34 ");
+                      if (telefono === "+34") setTelefono("+34 ");
+                    }}
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
@@ -226,7 +316,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-                    placeholder="C/ Example 123, Elche"
+                    placeholder="Dirección"
                     required
                     autoComplete="street-address"
                   />
@@ -266,7 +356,8 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                           : "Mostrar contraseña"
                       }
                     >
-                      {showPassword ? "🙈" : "👁️"}
+                      {/* ✅ Icono típico de ojo */}
+                      <EyeIcon off={showPassword} />
                     </button>
                   </div>
 
