@@ -4,7 +4,8 @@ import AdminEquipment from "./admin/AdminEquipment";
 import AdminExams from "./admin/AdminExams";
 import AdminMessages from "./admin/AdminMessages";
 import { useAuth } from "@/auth/AuthContext";
-import PendingUsersPanel from "@/app/components/admin/PendingUsersPanel";
+import PendingUsersPanel from "./admin/PendingUsersPanel";
+
 /**
  * AdminPanel: panel de administración (solo admins).
  */
