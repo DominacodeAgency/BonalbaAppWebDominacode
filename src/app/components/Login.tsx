@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { normalizeError } from "@/lib/normalizeError";
 import loginBg from "@/app/assets/FondoLoginRegister.png";
+import imgLogo from "@/app/assets/Logo.png";
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -46,7 +47,14 @@ export default function Login({
       <div className="relative w-full max-w-md">
         <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Bonalba</h1>
+            <img
+              src={imgLogo}
+              alt="Restaurante Golf Bonalba"
+              className="mx-auto mb-4 h-24 w-auto object-contain"
+            />
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Restaurante Golf Bonalba{" "}
+            </h1>
             <p className="text-muted-foreground">
               Sistema de Gestión Operativa
             </p>
