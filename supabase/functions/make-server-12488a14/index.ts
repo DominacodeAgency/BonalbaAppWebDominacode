@@ -23,6 +23,7 @@ const app = new Hono();
 // DEBUG / HELPERS
 // =======================
 const DEBUG = true; // ponlo a false en prod si no quieres tanto detalle
+const FUNCTION_NAME = "make-server-12488a14";
 
 function reqId() {
   return crypto.randomUUID();
@@ -55,9 +56,13 @@ const getBearer = (authHeader?: string | null) =>
 // MIDDLEWARES
 // =======================
 app.use("*", async (c, next) => {
-  const id = reqId();
-  c.set("requestId", id);
-  c.header("X-Request-Id", id);
+  if (DEBUG) {
+    console.log("➡️ INCOMING", {
+      method: c.req.method,
+      path: c.req.path,
+      url: c.req.url,
+    });
+  }
   await next();
 });
 
@@ -1059,8 +1064,17 @@ app.put("/messages/:id/read", async (c) => {
 
   return c.json({ ok: true, data: { success: true } });
 });
+Deno.serve((req) => {
+  const url = new URL(req.url);
 
-// =======================
-// SERVE
-// =======================
-Deno.serve(app.fetch);
+  const prefixes = [`/functions/v1/${FUNCTION_NAME}`, `/${FUNCTION_NAME}`];
+
+  for (const p of prefixes) {
+    if (url.pathname.startsWith(p)) {
+      url.pathname = url.pathname.slice(p.length) || "/";
+      break;
+    }
+  }
+
+  return app.fetch(new Request(url.toString(), req));
+});

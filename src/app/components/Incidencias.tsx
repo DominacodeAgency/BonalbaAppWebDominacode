@@ -37,8 +37,11 @@ export default function Incidencias() {
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/incidencias", { method: "GET" });
-      setIncidencias(data ?? []);
+      const res = await apiFetchAuth<{ ok: boolean; data: any[] }>(
+        "/incidencias",
+        { method: "GET" }
+      );
+      setIncidencias(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error cargando incidencias"));
       setIncidencias([]);

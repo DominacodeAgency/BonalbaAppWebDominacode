@@ -24,8 +24,11 @@ export default function Checklists() {
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/checklists", { method: "GET" });
-      setChecklists(data);
+      const res = await apiFetchAuth<{ ok: boolean; data: any[] }>(
+        "/checklists",
+        { method: "GET" }
+      );
+      setChecklists(res.data ?? []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar checklists"));
     } finally {
