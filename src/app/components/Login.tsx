@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { normalizeError } from "@/lib/normalizeError";
+import loginBg from "@/app/assets/FondoLoginRegister.png";
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -34,8 +35,15 @@ export default function Login({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
+    <div
+      className="relative min-h-screen w-full bg-cover bg-center bg-no-repeat px-4 flex items-center justify-center"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      {/* Overlay para legibilidad (opcional) */}
+      <div className="absolute inset-0 bg-black/35" />
+
+      {/* Contenido */}
+      <div className="relative w-full max-w-md">
         <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">Bonalba</h1>
