@@ -114,6 +114,22 @@ export default function Login({
             >
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </button>
+            {/* ✅ Botón para ir a registro */}
+            {/* ✅ Bloque profesional: No tienes cuenta */}
+            <div className="pt-2 text-center">
+              <p className="text-sm text-muted-foreground">
+                ¿No tienes cuenta?{" "}
+                <button
+                  type="button"
+                  onClick={() => setMode("register")}
+                  disabled={loading}
+                  className="font-medium text-primary hover:underline underline-offset-4
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                  Crea una nueva
+                </button>
+              </p>
+            </div>
           </form>
 
           {onInit && (
