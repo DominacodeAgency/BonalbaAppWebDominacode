@@ -868,6 +868,72 @@ app.delete("/users/:id", async (c) => {
     return c.json({ error: "Error al eliminar usuario: " + e.message }, 500);
   }
 });
+// =======================
+// PENDING USERS (ADMIN)
+// =======================
+
+// Lista solo perfiles pendientes (active=false)
+app.get("/admin/pending-users", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    if (auth.error) return auth.error;
+
+    const prof = auth.profile as Profile;
+    if (!isAdmin(prof)) return c.json({ error: "No autorizado" }, 401);
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id,email,username,full_name,role,area,active,created_at,phone,address"
+      )
+      .eq("active", false)
+      .order("created_at", { ascending: true });
+
+    if (error) return c.json({ error: "Error: " + error.message }, 500);
+
+    return c.json({ ok: true, data: data ?? [] });
+  } catch (e: any) {
+    console.error("Pending users error:", e);
+    return c.json({ error: "Error al obtener pendientes: " + e.message }, 500);
+  }
+});
+
+// Aprueba un perfil: active=true + role
+app.post("/admin/approve-user", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    if (auth.error) return auth.error;
+
+    const adminProf = auth.profile as Profile;
+    if (!isAdmin(adminProf)) return c.json({ error: "No autorizado" }, 401);
+
+    const { profileId, role, area } = await c.req.json();
+
+    if (!profileId) return c.json({ error: "Falta profileId" }, 400);
+    if (!["admin", "encargado", "empleado"].includes(role)) {
+      return c.json({ error: "role inválido" }, 400);
+    }
+    if (area && !["cocina", "sala"].includes(area)) {
+      return c.json({ error: "area inválida" }, 400);
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        active: true,
+        role,
+        area: area ?? null,
+      })
+      .eq("id", profileId);
+
+    if (error) return c.json({ error: "Error: " + error.message }, 500);
+
+    return c.json({ ok: true });
+  } catch (e: any) {
+    console.error("Approve user error:", e);
+    return c.json({ error: "Error al aprobar: " + e.message }, 500);
+  }
+});
 
 // EXAMS
 app.get("/exams", async (c) => {

@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
-import PendingUsersPanel from "@/app/components/admin/PendingUsersPanel";
-
 import {
   approveUser,
   fetchPendingUsers,
   type PendingProfile,
 } from "@/auth/apiAuth";
 
-function PendingUsersPanel() {
+export default function PendingUsersPanel() {
   const [items, setItems] = useState<PendingProfile[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,8 +39,7 @@ function PendingUsersPanel() {
         <button
           onClick={load}
           disabled={loading}
-          className="px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors
-                     disabled:opacity-60"
+          className="px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors disabled:opacity-60"
         >
           {loading ? "Cargando..." : "Actualizar"}
         </button>

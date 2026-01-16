@@ -1,16 +1,7 @@
 import { useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { registerUser, type RegisterPayload } from "@/auth/apiAuth";
 import { normalizeError } from "@/lib/normalizeError";
 import loginBg from "@/app/assets/FondoLoginRegister.png";
-
-type RegisterPayload = {
-  nombre: string;
-  apellidos: string;
-  email: string;
-  telefono?: string | null;
-  direccion: string;
-  password: string;
-};
 
 interface RegisterProps {
   onBackToLogin: () => void;
@@ -32,24 +23,22 @@ function passwordStrengthErrors(pw: string) {
   return errors;
 }
 
+// ✅ Normaliza teléfono: deja +34 y solo dígitos después (admite espacios/bloques)
 function normalizeEsPhone(input: string) {
   const raw = (input || "").trim();
   if (!raw) return "";
 
   // Asegura prefijo +34
-  let v = raw.startsWith("+34") ? raw : `+34 ${raw}`;
+  const v = raw.startsWith("+34") ? raw : `+34 ${raw}`;
 
-  // Conserva +34 y extrae dígitos restantes
-  const digits = v.replace(/[^\d]/g, ""); // solo dígitos
-  // digits empieza por 34 si venía con +34, si no lo añadimos arriba
+  // Extrae dígitos y conserva +34
+  const digits = v.replace(/[^\d]/g, "");
   const rest = digits.startsWith("34") ? digits.slice(2) : digits;
 
-  // Si no hay nada tras +34, devolvemos "+34"
   return rest ? `+34${rest}` : "+34";
 }
 
 function EyeIcon({ off }: { off?: boolean }) {
-  // SVG sencillo estilo "ojo" (on/off)
   return off ? (
     <svg
       width="18"
@@ -141,7 +130,6 @@ export default function Register({ onBackToLogin }: RegisterProps) {
       return;
     }
 
-    // ✅ normaliza el teléfono (si el usuario no puso nada más que +34, lo tratamos como null)
     const phoneNormalized = normalizeEsPhone(telefono);
     const phoneForPayload =
       phoneNormalized && phoneNormalized !== "+34" ? phoneNormalized : null;
@@ -157,12 +145,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
 
     try {
       setLoading(true);
-
-      await apiFetch<{ ok: boolean }>("/auth/register", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
+      await registerUser(payload); // ✅ usa la capa auth
       setSubmitted(true);
     } catch (err) {
       setError(normalizeError(err, "Error al registrar el usuario"));
@@ -259,7 +242,7 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                     disabled={loading}
                     className="w-full px-4 py-2 border border-border bg-background rounded-lg outline-none disabled:opacity-60
                                focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
-                    placeholder="Correo electrónico"
+                    placeholder="usuario@gmail.com"
                     required
                     autoComplete="email"
                     inputMode="email"
@@ -285,7 +268,6 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                         setTelefono("+34 ");
                         return;
                       }
-                      // si se queda en "+34" sin espacio, lo normalizamos a "+34 "
                       if (v === "+34") {
                         setTelefono("+34 ");
                         return;
@@ -293,7 +275,6 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                       setTelefono(v);
                     }}
                     onBlur={() => {
-                      // ✅ si el usuario deja algo raro, lo reajustamos
                       if (!telefono.startsWith("+34")) setTelefono("+34 ");
                       if (telefono === "+34") setTelefono("+34 ");
                     }}
@@ -356,7 +337,6 @@ export default function Register({ onBackToLogin }: RegisterProps) {
                           : "Mostrar contraseña"
                       }
                     >
-                      {/* ✅ Icono típico de ojo */}
                       <EyeIcon off={showPassword} />
                     </button>
                   </div>
