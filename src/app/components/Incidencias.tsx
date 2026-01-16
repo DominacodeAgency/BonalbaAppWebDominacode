@@ -11,13 +11,21 @@ export default function Incidencias() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Delete (inline)
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const [filter, setFilter] = useState("todas");
+
+  // Modal estado
   const [selectedIncidencia, setSelectedIncidencia] = useState<any | null>(
     null
   );
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [newStatus, setNewStatus] = useState("");
   const [statusComment, setStatusComment] = useState("");
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIncidencias();
@@ -30,32 +38,12 @@ export default function Incidencias() {
 
     try {
       const data = await apiFetchAuth<any[]>("/incidencias", { method: "GET" });
-      setIncidencias(data);
+      setIncidencias(data ?? []);
     } catch (e) {
       setError(normalizeError(e, "Error cargando incidencias"));
       setIncidencias([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleChangeStatus = async () => {
-    if (!selectedIncidencia || !newStatus) return;
-
-    try {
-      await apiFetchAuth(`/incidencias/${selectedIncidencia.id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status: newStatus, comment: statusComment }),
-      });
-
-      await fetchIncidencias();
-      setShowStatusModal(false);
-      setSelectedIncidencia(null);
-      setNewStatus("");
-      setStatusComment("");
-    } catch (e) {
-      // Importante: no conviertas esto en "error de página"
-      alert(normalizeError(e, "Error actualizando incidencia"));
     }
   };
 
@@ -107,6 +95,81 @@ export default function Incidencias() {
     );
   };
 
+  const canDelete = (inc: any) => {
+    // Reglas:
+    // - admin puede borrar todas
+    // - creador puede borrar las suyas (si quieres)
+    return user?.role === "admin" || inc.userId === user?.id;
+  };
+
+  const openStatusModal = (incidencia: any) => {
+    setDeleteError(null);
+    setStatusError(null);
+    setStatusLoading(false);
+
+    setSelectedIncidencia(incidencia);
+    setNewStatus(incidencia.status === "abierta" ? "en_proceso" : "resuelta");
+    setStatusComment("");
+    setShowStatusModal(true);
+  };
+
+  const closeStatusModal = () => {
+    setShowStatusModal(false);
+    setSelectedIncidencia(null);
+    setNewStatus("");
+    setStatusComment("");
+    setStatusLoading(false);
+    setStatusError(null);
+  };
+
+  const handleChangeStatus = async () => {
+    if (!selectedIncidencia || !newStatus) return;
+
+    setStatusLoading(true);
+    setStatusError(null);
+
+    try {
+      await apiFetchAuth(`/incidencias/${selectedIncidencia.id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus, comment: statusComment }),
+      });
+
+      await fetchIncidencias();
+      closeStatusModal();
+    } catch (e) {
+      setStatusError(normalizeError(e, "Error actualizando incidencia"));
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleDeleteIncidencia = async (inc: any) => {
+    if (!inc?.id) return;
+
+    setDeleteError(null);
+    setStatusError(null);
+
+    const ok = confirm(
+      `¿Eliminar la incidencia "${inc.title}"?\n\nEsta acción no se puede deshacer.`
+    );
+    if (!ok) return;
+
+    try {
+      setDeleteLoadingId(inc.id);
+
+      await apiFetchAuth(`/incidencias/${inc.id}`, { method: "DELETE" });
+
+      // Si estaba abierta en modal, cerramos
+      if (selectedIncidencia?.id === inc.id) closeStatusModal();
+
+      await fetchIncidencias();
+    } catch (e) {
+      setDeleteError(normalizeError(e, "Error eliminando incidencia"));
+    } finally {
+      setDeleteLoadingId(null);
+    }
+  };
+
   return (
     <PageState
       loading={loading}
@@ -123,6 +186,12 @@ export default function Incidencias() {
             Gestiona y da seguimiento a las incidencias reportadas
           </p>
         </div>
+
+        {deleteError && (
+          <div className="mb-4 bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] px-4 py-3 rounded-lg text-sm">
+            {deleteError}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-4 mb-6">
@@ -166,9 +235,11 @@ export default function Incidencias() {
                     {getStatusBadge(incidencia.status)}
                     {getPriorityBadge(incidencia.priority)}
                   </div>
+
                   <p className="text-sm text-muted-foreground mb-2">
                     {incidencia.description}
                   </p>
+
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>Reportada por: {incidencia.userName}</span>
                     <span>•</span>
@@ -221,26 +292,33 @@ export default function Incidencias() {
                 </div>
               )}
 
-              {incidencia.status !== "resuelta" && (
-                <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
+                {incidencia.status !== "resuelta" && (
                   <button
-                    onClick={() => {
-                      setSelectedIncidencia(incidencia);
-                      setNewStatus(
-                        incidencia.status === "abierta"
-                          ? "en_proceso"
-                          : "resuelta"
-                      );
-                      setShowStatusModal(true);
-                    }}
+                    onClick={() => openStatusModal(incidencia)}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-[color:var(--brand-olive-dark)] transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {incidencia.status === "abierta"
                       ? "Poner en proceso"
                       : "Marcar como resuelta"}
                   </button>
-                </div>
-              )}
+                )}
+
+                {canDelete(incidencia) && (
+                  <button
+                    onClick={() => handleDeleteIncidencia(incidencia)}
+                    disabled={deleteLoadingId === incidencia.id}
+                    className="px-4 py-2 rounded-lg text-sm font-medium border border-[var(--error)]/30 text-[var(--error)] bg-[var(--error-bg)] hover:opacity-90 transition-colors
+                               disabled:opacity-50 disabled:cursor-not-allowed
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    title="Eliminar incidencia"
+                  >
+                    {deleteLoadingId === incidencia.id
+                      ? "Eliminando..."
+                      : "Eliminar"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -255,14 +333,20 @@ export default function Incidencias() {
 
         {/* Modal cambio de estado */}
         {showStatusModal && selectedIncidencia && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-card text-card-foreground rounded-lg shadow-xl max-w-md w-full p-6 border border-border">
-              <h3 className="font-bold text-lg mb-4 text-foreground">
+              <h3 className="font-bold text-lg mb-2 text-foreground">
                 Actualizar estado
               </h3>
               <p className="text-muted-foreground mb-4">
                 {selectedIncidencia.title}
               </p>
+
+              {statusError && (
+                <div className="mb-4 bg-[var(--error-bg)] border border-[var(--error)]/20 text-[var(--error)] px-4 py-3 rounded-lg text-sm">
+                  {statusError}
+                </div>
+              )}
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -295,18 +379,20 @@ export default function Incidencias() {
               <div className="flex gap-3">
                 <button
                   onClick={handleChangeStatus}
-                  className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-[color:var(--brand-olive-dark)] transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled={statusLoading}
+                  className="flex-1 bg-primary text-primary-foreground py-2 px-4 rounded-lg hover:bg-[color:var(--brand-olive-dark)] transition-colors font-medium
+                             disabled:opacity-50 disabled:cursor-not-allowed
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  Actualizar
+                  {statusLoading ? "Actualizando..." : "Actualizar"}
                 </button>
+
                 <button
-                  onClick={() => {
-                    setShowStatusModal(false);
-                    setSelectedIncidencia(null);
-                    setNewStatus("");
-                    setStatusComment("");
-                  }}
-                  className="flex-1 bg-muted text-muted-foreground py-2 px-4 rounded-lg hover:bg-muted/80 hover:text-foreground transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={closeStatusModal}
+                  disabled={statusLoading}
+                  className="flex-1 bg-muted text-muted-foreground py-2 px-4 rounded-lg hover:bg-muted/80 hover:text-foreground transition-colors font-medium
+                             disabled:opacity-50 disabled:cursor-not-allowed
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Cancelar
                 </button>

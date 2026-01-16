@@ -1,3 +1,5 @@
+import imgLogo from "@/app/assets/Logo.png";
+
 interface HeaderProps {
   user: any;
   onLogout: () => void;
@@ -17,8 +19,11 @@ export default function Header({ user, onLogout }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-foreground">Bonalba</h1>
-
+            <img
+              src={imgLogo}
+              alt="Restaurante Golf Bonalba"
+              className="mx-auto mb-4 h-24 w-auto object-contain"
+            />
             <div className="hidden sm:block h-6 w-px bg-border" />
 
             <div className="hidden sm:block">

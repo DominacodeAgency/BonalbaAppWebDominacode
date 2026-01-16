@@ -14,6 +14,11 @@ export function apiUrl(path: string) {
   return `${base}${p}`;
 }
 
+function short(text: string, max = 300) {
+  const t = text.trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
@@ -22,25 +27,38 @@ export async function apiFetch<T>(
     ...(options.headers as Record<string, string> | undefined),
   };
 
+  // Si hay body y NO es FormData, pon Content-Type JSON por defecto
   const hasBody = typeof options.body !== "undefined";
-  if (hasBody && !headers["Content-Type"]) {
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (hasBody && !isFormData && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
   const res = await fetch(apiUrl(path), { ...options, headers });
 
-  // 401 → logout global
+  // 401 → logout global (tu lógica actual)
   if (res.status === 401) {
     clearToken();
     window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT));
     throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
   }
 
+  const requestId = res.headers.get("x-request-id") || "";
+  const contentType = res.headers.get("content-type") || "";
+
+  // Lee el body SIEMPRE como texto (sirve para JSON y para texto plano/HTML)
   const text = await res.text();
 
-  // ✅ Parse seguro (puede venir HTML/texto en 404, 500, etc.)
+  // Parse JSON solo si tiene pinta de JSON o content-type indica JSON
   let data: any = null;
-  if (text) {
+  const looksJson =
+    contentType.includes("application/json") ||
+    text.trim().startsWith("{") ||
+    text.trim().startsWith("[");
+
+  if (text && looksJson) {
     try {
       data = JSON.parse(text);
     } catch {
@@ -49,12 +67,30 @@ export async function apiFetch<T>(
   }
 
   if (!res.ok) {
-    // Si viene JSON con {error}, úsalo. Si no, enseña el texto plano.
-    const msg =
-      data?.error ?? (text ? text.slice(0, 200) : null) ?? `HTTP ${res.status}`;
-    throw new Error(msg);
+    // Mensaje preferente: error/message del backend
+    const backendMsg =
+      data?.error ??
+      data?.message ??
+      data?.details ??
+      (typeof data === "string" ? data : null);
+
+    // Si no hay JSON útil, usa texto plano (recortado)
+    const plainMsg = text ? short(text, 300) : null;
+
+    const baseMsg =
+      backendMsg ?? plainMsg ?? `HTTP ${res.status} ${res.statusText}`;
+
+    // Contexto útil para depurar
+    const method = (options.method || "GET").toUpperCase();
+    const where = `${method} ${path}`;
+
+    const suffix = requestId ? ` (req: ${requestId})` : "";
+    throw new Error(`${baseMsg} — ${where} [${res.status}]${suffix}`);
   }
 
-  // Si no es JSON pero fue ok, devuelve el texto (raro pero posible)
+  // 204 no content
+  if (res.status === 204) return undefined as unknown as T;
+
+  // Si vino JSON, devuelve JSON; si no, devuelve texto
   return (data ?? (text as any)) as T;
 }
