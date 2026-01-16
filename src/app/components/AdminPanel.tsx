@@ -1,134 +1,62 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import AdminUsers from "./admin/AdminUsers";
+import AdminEquipment from "./admin/AdminEquipment";
+import AdminExams from "./admin/AdminExams";
+import AdminMessages from "./admin/AdminMessages";
+import { useAuth } from "@/auth/AuthContext";
 import PendingUsersPanel from "@/app/components/admin/PendingUsersPanel";
+/**
+ * AdminPanel: panel de administración (solo admins).
+ */
+export default function AdminPanel() {
+  const { user } = useAuth();
 
-import {
-  approveUser,
-  fetchPendingUsers,
-  type PendingProfile,
-} from "@/auth/apiAuth";
+  const [activeSection, setActiveSection] = useState<
+    "users" | "pendingUsers" | "equipment" | "exams" | "messages"
+  >("users");
 
-function PendingUsersPanel() {
-  const [items, setItems] = useState<PendingProfile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const sections = [
+    { id: "users", label: "Gestión de usuarios" },
+    { id: "pendingUsers", label: "Solicitudes pendientes" },
+    { id: "equipment", label: "Gestión de equipos" },
+    { id: "exams", label: "Exámenes" },
+    { id: "messages", label: "Mensajería" },
+  ] as const;
 
-  const [roleById, setRoleById] = useState<
-    Record<string, "empleado" | "encargado" | "admin">
-  >({});
-
-  const [areaById, setAreaById] = useState<
-    Record<string, "cocina" | "sala" | "">
-  >({});
-
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await fetchPendingUsers();
-      setItems(res.data ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  if (!user) return null;
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Solicitudes pendientes</h2>
-
-        <button
-          onClick={load}
-          disabled={loading}
-          className="px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors
-                     disabled:opacity-60"
-        >
-          {loading ? "Cargando..." : "Actualizar"}
-        </button>
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
+          Panel de Administración
+        </h2>
+        <p className="text-muted-foreground">Gestión avanzada del sistema</p>
       </div>
 
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No hay solicitudes pendientes.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {items.map((u) => {
-            const role = roleById[u.id] ?? "empleado";
-            const area = areaById[u.id] ?? "";
-
-            return (
-              <div
-                key={u.id}
-                className="rounded-lg border border-border bg-card p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <div className="font-medium">
-                      {u.full_name || u.username || u.email}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {u.email}
-                      {u.phone ? ` • ${u.phone}` : ""}
-                      {u.address ? ` • ${u.address}` : ""}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Creado: {new Date(u.created_at).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      className="border border-border rounded-md px-2 py-2 bg-background"
-                      value={role}
-                      onChange={(e) =>
-                        setRoleById((p) => ({
-                          ...p,
-                          [u.id]: e.target.value as any,
-                        }))
-                      }
-                    >
-                      <option value="empleado">Empleado</option>
-                      <option value="encargado">Encargado</option>
-                      <option value="admin">Admin</option>
-                    </select>
-
-                    <select
-                      className="border border-border rounded-md px-2 py-2 bg-background"
-                      value={area}
-                      onChange={(e) =>
-                        setAreaById((p) => ({
-                          ...p,
-                          [u.id]: e.target.value as any,
-                        }))
-                      }
-                    >
-                      <option value="">(sin área)</option>
-                      <option value="cocina">Cocina</option>
-                      <option value="sala">Sala</option>
-                    </select>
-
-                    <button
-                      className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-                      onClick={async () => {
-                        await approveUser({
-                          profileId: u.id,
-                          role,
-                          area: area ? (area as any) : null,
-                        });
-                        await load();
-                      }}
-                    >
-                      Aprobar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-4 mb-6">
+        <div className="flex flex-wrap gap-2">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                activeSection === section.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:opacity-90"
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
         </div>
-      )}
-    </section>
+      </div>
+
+      {activeSection === "users" && <AdminUsers />}
+      {activeSection === "pendingUsers" && <PendingUsersPanel />}
+      {activeSection === "equipment" && <AdminEquipment />}
+      {activeSection === "exams" && <AdminExams />}
+      {activeSection === "messages" && <AdminMessages />}
+    </div>
   );
 }
