@@ -4,14 +4,21 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * AdminEquipment: gestión de equipos (cámaras y freidoras).
- * Usa AuthContext + apiFetchAuth.
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+type ApiOk<T> = { ok: boolean; data: T };
+
+type EquipmentRow = {
+  id: string;
+  name: string;
+  type: "camara" | "freidora" | string;
+  status?: string | null;
+  lastCheck?: string | null;
+};
+
 export default function AdminEquipment() {
   const { user } = useAuth();
 
-  const [equipment, setEquipment] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,8 +34,11 @@ export default function AdminEquipment() {
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/equipment", { method: "GET" });
-      setEquipment(data);
+      const res = await apiFetchAuth<ApiList<EquipmentRow>>("/equipment", {
+        method: "GET",
+      });
+
+      setEquipment(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar equipos"));
       setEquipment([]);
@@ -41,15 +51,15 @@ export default function AdminEquipment() {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
 
-    const equipmentData = {
-      name: formData.get("name") as string,
-      type: formData.get("type") as string,
+    const payload = {
+      name: String(formData.get("name") || "").trim(),
+      type: String(formData.get("type") || "").trim(),
     };
 
     try {
-      await apiFetchAuth("/equipment", {
+      await apiFetchAuth<ApiOk<EquipmentRow>>("/equipment", {
         method: "POST",
-        body: JSON.stringify(equipmentData),
+        body: JSON.stringify(payload),
       });
 
       setShowModal(false);
@@ -64,9 +74,12 @@ export default function AdminEquipment() {
     if (!confirm("¿Estás seguro de que deseas eliminar este equipo?")) return;
 
     try {
-      await apiFetchAuth(`/equipment/${equipmentId}`, {
-        method: "DELETE",
-      });
+      await apiFetchAuth<ApiOk<{ success: true }>>(
+        `/equipment/${equipmentId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       await fetchEquipment();
       alert("Equipo eliminado correctamente");

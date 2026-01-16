@@ -4,22 +4,47 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * AdminExams: gestión de exámenes y visualización de resultados.
- * - /exams es crítico
- * - /exams/results es opcional (si falla => [])
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type ExamQuestion = {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+};
+
+type ExamRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  questions: ExamQuestion[];
+
+  createdBy?: string | null;
+  createdAt?: string | null;
+};
+
+type ResultRow = {
+  id: string;
+  examId: string;
+  userId?: string;
+  userName?: string;
+  score: number;
+  correct: number;
+  total: number;
+  date: string;
+};
+
 export default function AdminExams() {
   const { user } = useAuth();
 
-  const [exams, setExams] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [exams, setExams] = useState<ExamRow[]>([]);
+  const [results, setResults] = useState<ResultRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
-  const [questions, setQuestions] = useState<any[]>([
+
+  const [questions, setQuestions] = useState<ExamQuestion[]>([
     { question: "", options: ["", "", "", ""], correctAnswer: 0 },
   ]);
 
@@ -33,14 +58,24 @@ export default function AdminExams() {
     setError(null);
 
     try {
-      const examsData = await apiFetchAuth<any[]>("/exams", { method: "GET" });
-      setExams(examsData);
-
-      const resultsData = await apiFetchAuth<any[]>("/exams/results", {
+      // /exams CRÍTICO
+      const examsRes = await apiFetchAuth<ApiList<ExamRow>>("/exams", {
         method: "GET",
-      }).catch(() => null);
+      });
+      const examsList = Array.isArray(examsRes.data) ? examsRes.data : [];
+      setExams(examsList);
 
-      setResults(resultsData ?? []);
+      // /exams/results OPCIONAL
+      const resultsRes = await apiFetchAuth<ApiList<ResultRow>>(
+        "/exams/results",
+        { method: "GET" }
+      ).catch(() => null);
+
+      setResults(
+        resultsRes?.data && Array.isArray(resultsRes.data)
+          ? resultsRes.data
+          : []
+      );
     } catch (e) {
       setError(normalizeError(e, "Error al cargar exámenes"));
       setExams([]);
@@ -50,13 +85,18 @@ export default function AdminExams() {
     }
   };
 
+  const resetQuestions = () =>
+    setQuestions([
+      { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+    ]);
+
   const handleCreateExam = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
 
     const examData = {
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
+      title: String(formData.get("title") || "").trim(),
+      description: String(formData.get("description") || "").trim(),
       questions: questions.filter((q) => q.question.trim() !== ""),
     };
 
@@ -66,15 +106,13 @@ export default function AdminExams() {
     }
 
     try {
-      await apiFetchAuth("/exams", {
+      await apiFetchAuth<{ ok: boolean }>("/exams", {
         method: "POST",
         body: JSON.stringify(examData),
       });
 
       setShowCreateModal(false);
-      setQuestions([
-        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
-      ]);
+      resetQuestions();
       await fetchData();
       alert("Examen creado correctamente");
     } catch (e) {
@@ -83,16 +121,22 @@ export default function AdminExams() {
   };
 
   const addQuestion = () => {
-    setQuestions([
-      ...questions,
+    setQuestions((prev) => [
+      ...prev,
       { question: "", options: ["", "", "", ""], correctAnswer: 0 },
     ]);
   };
 
-  const updateQuestion = (index: number, field: string, value: any) => {
-    const newQuestions = [...questions];
-    newQuestions[index] = { ...newQuestions[index], [field]: value };
-    setQuestions(newQuestions);
+  const updateQuestion = (
+    index: number,
+    field: keyof ExamQuestion,
+    value: any
+  ) => {
+    setQuestions((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
   const updateOption = (
@@ -100,13 +144,18 @@ export default function AdminExams() {
     optionIndex: number,
     value: string
   ) => {
-    const newQuestions = [...questions];
-    newQuestions[questionIndex].options[optionIndex] = value;
-    setQuestions(newQuestions);
+    setQuestions((prev) => {
+      const next = [...prev];
+      const q = next[questionIndex];
+      const opts = [...q.options];
+      opts[optionIndex] = value;
+      next[questionIndex] = { ...q, options: opts };
+      return next;
+    });
   };
 
   const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (!user) return null;
@@ -128,6 +177,7 @@ export default function AdminExams() {
               Crea y gestiona exámenes para el personal
             </p>
           </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => setShowResultsModal(true)}
@@ -168,9 +218,13 @@ export default function AdminExams() {
                       {exam.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {exam.questions.length} preguntas • Creado por{" "}
-                      {exam.createdBy} el{" "}
-                      {new Date(exam.createdAt).toLocaleDateString("es-ES")}
+                      {exam.questions?.length ?? 0} preguntas
+                      {exam.createdBy ? ` • Creado por ${exam.createdBy}` : ""}
+                      {exam.createdAt
+                        ? ` • el ${new Date(exam.createdAt).toLocaleDateString(
+                            "es-ES"
+                          )}`
+                        : ""}
                     </p>
                   </div>
                 </div>
@@ -184,6 +238,7 @@ export default function AdminExams() {
                       {examResults.length}
                     </span>
                   </div>
+
                   {examResults.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground">
@@ -288,7 +343,7 @@ export default function AdminExams() {
                         />
 
                         <div className="space-y-2">
-                          {q.options.map((opt: string, optIndex: number) => (
+                          {q.options.map((opt, optIndex) => (
                             <div
                               key={optIndex}
                               className="flex items-center gap-2"
@@ -339,13 +394,7 @@ export default function AdminExams() {
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false);
-                      setQuestions([
-                        {
-                          question: "",
-                          options: ["", "", "", ""],
-                          correctAnswer: 0,
-                        },
-                      ]);
+                      resetQuestions();
                     }}
                     className="flex-1 bg-secondary text-secondary-foreground py-2 px-4 rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
@@ -385,15 +434,16 @@ export default function AdminExams() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <p className="font-medium text-foreground">
-                            {exam?.title}
+                            {exam?.title ?? "Examen"}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {result.userName}
+                            {result.userName ?? "Usuario"}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(result.date).toLocaleString("es-ES")}
                           </p>
                         </div>
+
                         <div className="text-right">
                           <p
                             className={`text-2xl font-bold ${
@@ -404,7 +454,7 @@ export default function AdminExams() {
                                 : "text-destructive"
                             }`}
                           >
-                            {result.score.toFixed(0)}%
+                            {Number(result.score).toFixed(0)}%
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {result.correct} / {result.total} correctas

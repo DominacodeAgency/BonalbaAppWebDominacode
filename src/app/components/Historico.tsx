@@ -3,12 +3,22 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * Historico: muestra el histórico de actividades.
- * Usa apiFetchAuth para llamar al backend con token automático.
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type HistoricoItem = {
+  id: string;
+  type: "checklist" | "incidencia" | "appcc" | string;
+  action: string;
+  user?: string | null;
+  date: string;
+
+  observations?: string | null;
+  temperature?: number | null;
+  title?: string | null;
+};
+
 export default function Historico() {
-  const [historico, setHistorico] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState("todos");
@@ -18,10 +28,14 @@ export default function Historico() {
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/historico", { method: "GET" });
-      setHistorico(data);
+      const res = await apiFetchAuth<ApiList<HistoricoItem>>("/historico", {
+        method: "GET",
+      });
+
+      setHistorico(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar histórico"));
+      setHistorico([]);
     } finally {
       setLoading(false);
     }
@@ -32,7 +46,9 @@ export default function Historico() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredHistorico = historico.filter((item) => {
+  const safeHistorico = Array.isArray(historico) ? historico : [];
+
+  const filteredHistorico = safeHistorico.filter((item) => {
     if (typeFilter === "todos") return true;
     return item.type === typeFilter;
   });
@@ -41,15 +57,15 @@ export default function Historico() {
   const thisWeekStart = new Date(today);
   thisWeekStart.setDate(today.getDate() - 7);
 
-  const thisWeekItems = historico.filter(
+  const thisWeekItems = safeHistorico.filter(
     (item) => new Date(item.date) >= thisWeekStart
   );
 
-  const completedTasks = historico.filter(
+  const completedTasks = safeHistorico.filter(
     (item) => item.type === "checklist" && item.action === "Tarea completada"
   ).length;
 
-  const totalIncidencias = historico.filter(
+  const totalIncidencias = safeHistorico.filter(
     (item) => item.type === "incidencia"
   ).length;
 
@@ -101,7 +117,7 @@ export default function Historico() {
               Total registros
             </p>
             <p className="text-3xl font-bold text-foreground">
-              {historico.length}
+              {safeHistorico.length}
             </p>
           </div>
 
@@ -174,7 +190,10 @@ export default function Historico() {
                   </div>
 
                   <p className="text-sm text-muted-foreground mb-1">
-                    Por <strong className="text-foreground">{item.user}</strong>
+                    Por{" "}
+                    <strong className="text-foreground">
+                      {item.user ?? "-"}
+                    </strong>
                   </p>
 
                   {item.observations && (
@@ -186,7 +205,7 @@ export default function Historico() {
                     </p>
                   )}
 
-                  {item.temperature && (
+                  {typeof item.temperature === "number" && (
                     <p className="text-sm text-muted-foreground mb-1">
                       <strong className="text-foreground">Temperatura:</strong>{" "}
                       {item.temperature}°C

@@ -4,13 +4,28 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * APPCC: registro de temperaturas y cambios de aceite.
- * Estándar beta:
- * - Carga inicial con PageState
- * - Si falla fetch: limpia estados
- * - Acciones: errores inline en modal (sin alert)
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type EquipmentRow = {
+  id: string;
+  name: string;
+  type: "camara" | "freidora" | string;
+  status?: string;
+  lastCheck?: string | null;
+};
+
+type RegistroRow = {
+  id: string;
+  type: "temperatura" | "aceite" | string;
+  equipmentId: string;
+  temperature?: number;
+  tipo?: string;
+  motivo?: string;
+  observations?: string | null;
+  userName?: string | null;
+  date: string;
+};
+
 export default function APPCC() {
   const { user } = useAuth();
 
@@ -18,8 +33,8 @@ export default function APPCC() {
     "temperaturas" | "aceites"
   >("temperaturas");
 
-  const [equipment, setEquipment] = useState<any[]>([]);
-  const [registros, setRegistros] = useState<any[]>([]);
+  const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
+  const [registros, setRegistros] = useState<RegistroRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,16 +56,17 @@ export default function APPCC() {
     setError(null);
 
     try {
-      const [equipmentData, registrosData] = await Promise.all([
-        apiFetchAuth<any[]>("/equipment", { method: "GET" }),
-        apiFetchAuth<any[]>("/appcc/registros", { method: "GET" }),
+      const [eRes, rRes] = await Promise.all([
+        apiFetchAuth<ApiList<EquipmentRow>>("/equipment", { method: "GET" }),
+        apiFetchAuth<ApiList<RegistroRow>>("/appcc/registros", {
+          method: "GET",
+        }),
       ]);
 
-      setEquipment(equipmentData ?? []);
-      setRegistros(registrosData ?? []);
+      setEquipment(Array.isArray(eRes.data) ? eRes.data : []);
+      setRegistros(Array.isArray(rRes.data) ? rRes.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar APPCC"));
-      // ✅ importante para beta: no dejar datos viejos
       setEquipment([]);
       setRegistros([]);
     } finally {
@@ -91,7 +107,7 @@ export default function APPCC() {
     setSubmitError(null);
 
     try {
-      await apiFetchAuth("/appcc/temperatura", {
+      await apiFetchAuth<{ ok: boolean }>("/appcc/temperatura", {
         method: "POST",
         body: JSON.stringify({
           equipmentId: selectedEquipment,
@@ -116,7 +132,7 @@ export default function APPCC() {
     setSubmitError(null);
 
     try {
-      await apiFetchAuth("/appcc/aceite", {
+      await apiFetchAuth<{ ok: boolean }>("/appcc/aceite", {
         method: "POST",
         body: JSON.stringify({
           equipmentId: selectedEquipment,
@@ -135,15 +151,20 @@ export default function APPCC() {
     }
   };
 
-  const getCamaras = () => equipment.filter((eq) => eq.type === "camara");
-  const getFreidoras = () => equipment.filter((eq) => eq.type === "freidora");
+  // ✅ “safe arrays” por si algún día se rompe el backend o cambia el shape
+  const safeEquipment = Array.isArray(equipment) ? equipment : [];
+  const safeRegistros = Array.isArray(registros) ? registros : [];
+
+  const getCamaras = () => safeEquipment.filter((eq) => eq.type === "camara");
+  const getFreidoras = () =>
+    safeEquipment.filter((eq) => eq.type === "freidora");
 
   const getRecentRegistros = (type: string, equipmentType: string) => {
-    return registros
+    return safeRegistros
       .filter(
         (r) =>
           r.type === type &&
-          equipment.find(
+          safeEquipment.find(
             (e) => e.id === r.equipmentId && e.type === equipmentType
           )
       )
@@ -208,7 +229,7 @@ export default function APPCC() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               {getCamaras().map((camara) => {
-                const lastRegistro = registros
+                const lastRegistro = safeRegistros
                   .filter(
                     (r) =>
                       r.equipmentId === camara.id && r.type === "temperatura"
@@ -218,10 +239,11 @@ export default function APPCC() {
                       new Date(b.date).getTime() - new Date(a.date).getTime()
                   )[0];
 
-                const isOutOfRange =
-                  lastRegistro &&
-                  (lastRegistro.temperature < 0 ||
-                    lastRegistro.temperature > 4);
+                const temp =
+                  typeof lastRegistro?.temperature === "number"
+                    ? lastRegistro.temperature
+                    : null;
+                const isOutOfRange = temp !== null && (temp < 0 || temp > 4);
 
                 return (
                   <div
@@ -232,7 +254,7 @@ export default function APPCC() {
                       {camara.name}
                     </h3>
 
-                    {lastRegistro ? (
+                    {lastRegistro && temp !== null ? (
                       <div>
                         <div className="flex items-baseline gap-2 mb-2">
                           <span
@@ -242,7 +264,7 @@ export default function APPCC() {
                                 : "text-[var(--success)]"
                             }`}
                           >
-                            {lastRegistro.temperature}°C
+                            {temp}°C
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -273,11 +295,14 @@ export default function APPCC() {
               </h3>
               <div className="space-y-3">
                 {getRecentRegistros("temperatura", "camara").map((registro) => {
-                  const eq = equipment.find(
+                  const eq = safeEquipment.find(
                     (e) => e.id === registro.equipmentId
                   );
-                  const isOutOfRange =
-                    registro.temperature < 0 || registro.temperature > 4;
+                  const temp =
+                    typeof registro.temperature === "number"
+                      ? registro.temperature
+                      : null;
+                  const isOutOfRange = temp !== null && (temp < 0 || temp > 4);
 
                   return (
                     <div
@@ -286,11 +311,11 @@ export default function APPCC() {
                     >
                       <div className="flex-1">
                         <p className="font-medium text-foreground">
-                          {eq?.name}
+                          {eq?.name ?? "-"}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {new Date(registro.date).toLocaleString("es-ES")} •{" "}
-                          {registro.userName}
+                          {registro.userName ?? "-"}
                         </p>
                         {registro.observations && (
                           <p className="text-sm text-muted-foreground mt-1">
@@ -305,7 +330,7 @@ export default function APPCC() {
                             : "text-[var(--success)]"
                         }`}
                       >
-                        {registro.temperature}°C
+                        {temp !== null ? `${temp}°C` : "-"}
                       </span>
                     </div>
                   );
@@ -334,7 +359,7 @@ export default function APPCC() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {getFreidoras().map((freidora) => {
-                const lastRegistro = registros
+                const lastRegistro = safeRegistros
                   .filter(
                     (r) => r.equipmentId === freidora.id && r.type === "aceite"
                   )
@@ -358,11 +383,11 @@ export default function APPCC() {
                           <strong className="text-foreground">
                             Último cambio:
                           </strong>{" "}
-                          {lastRegistro.tipo}
+                          {lastRegistro.tipo ?? "-"}
                         </p>
                         <p className="text-sm text-muted-foreground mb-1">
                           <strong className="text-foreground">Motivo:</strong>{" "}
-                          {lastRegistro.motivo}
+                          {lastRegistro.motivo ?? "-"}
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
                           {new Date(lastRegistro.date).toLocaleString("es-ES")}
@@ -384,7 +409,7 @@ export default function APPCC() {
               </h3>
               <div className="space-y-3">
                 {getRecentRegistros("aceite", "freidora").map((registro) => {
-                  const eq = equipment.find(
+                  const eq = safeEquipment.find(
                     (e) => e.id === registro.equipmentId
                   );
 
@@ -395,19 +420,19 @@ export default function APPCC() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-foreground">
-                          {eq?.name}
+                          {eq?.name ?? "-"}
                         </p>
                         <span className="text-sm bg-accent text-accent-foreground px-2 py-1 rounded">
-                          {registro.tipo}
+                          {registro.tipo ?? "-"}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         <strong className="text-foreground">Motivo:</strong>{" "}
-                        {registro.motivo}
+                        {registro.motivo ?? "-"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
                         {new Date(registro.date).toLocaleString("es-ES")} •{" "}
-                        {registro.userName}
+                        {registro.userName ?? "-"}
                       </p>
                       {registro.observations && (
                         <p className="text-sm text-muted-foreground mt-1">

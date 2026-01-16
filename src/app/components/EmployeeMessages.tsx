@@ -3,25 +3,44 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type MessageRow = {
+  id: string;
+  senderId?: string | null;
+  senderName?: string | null;
+  recipientId: string; // "all" o userId
+  subject: string;
+  message: string;
+  read?: boolean;
+  date: string;
+};
+
 /**
  * EmployeeMessages: bandeja de mensajes del empleado.
- * Usa apiFetchAuth para autenticar automáticamente (sin props token/projectId).
+ * Compatible con backend que responde { ok, data }.
  */
 export default function EmployeeMessages() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<MessageRow | null>(
+    null
+  );
 
   const fetchMessages = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/messages", { method: "GET" });
-      setMessages(data);
+      const res = await apiFetchAuth<ApiList<MessageRow>>("/messages", {
+        method: "GET",
+      });
+
+      setMessages(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar mensajes"));
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -34,21 +53,25 @@ export default function EmployeeMessages() {
 
   const markAsRead = async (messageId: string) => {
     try {
-      await apiFetchAuth(`/messages/${messageId}/read`, { method: "PUT" });
+      await apiFetchAuth<{ ok: boolean }>(`/messages/${messageId}/read`, {
+        method: "PUT",
+      });
       await fetchMessages();
     } catch (e) {
       alert(normalizeError(e, "Error al marcar como leído"));
     }
   };
 
-  const openMessage = (message: any) => {
+  const openMessage = (message: MessageRow) => {
     setSelectedMessage(message);
     if (!message.read) {
       markAsRead(message.id);
     }
   };
 
-  const unreadCount = messages.filter((m) => !m.read).length;
+  const unreadCount = (Array.isArray(messages) ? messages : []).filter(
+    (m) => !m.read
+  ).length;
 
   return (
     <PageState
@@ -93,7 +116,7 @@ export default function EmployeeMessages() {
               </div>
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
-                <span>De: {message.senderName}</span>
+                <span>De: {message.senderName || "Administración"}</span>
                 <span>•</span>
                 <span>{new Date(message.date).toLocaleString("es-ES")}</span>
               </div>
@@ -126,7 +149,7 @@ export default function EmployeeMessages() {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>
                     <strong className="text-foreground">De:</strong>{" "}
-                    {selectedMessage.senderName}
+                    {selectedMessage.senderName || "Administración"}
                   </span>
                   <span>•</span>
                   <span>

@@ -4,23 +4,49 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * EmployeeExams: vista de exámenes para empleados.
- * - /exams es crítico: si falla => error de página
- * - /exams/results es opcional: si falla => results=[]
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type ExamQuestion = {
+  question: string;
+  options: string[];
+};
+
+type ExamRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  questions: ExamQuestion[];
+};
+
+type ExamResultRow = {
+  id: string;
+  userId: string;
+  examId: string;
+  score: number;
+  correct: number;
+  total: number;
+  date?: string;
+};
+
+type SubmitResult = {
+  ok?: boolean;
+  score: number;
+  correct: number;
+  total: number;
+};
+
 export default function EmployeeExams() {
   const { user } = useAuth();
 
-  const [exams, setExams] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [exams, setExams] = useState<ExamRow[]>([]);
+  const [results, setResults] = useState<ExamResultRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedExam, setSelectedExam] = useState<any | null>(null);
+  const [selectedExam, setSelectedExam] = useState<ExamRow | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
-  const [lastResult, setLastResult] = useState<any | null>(null);
+  const [lastResult, setLastResult] = useState<SubmitResult | null>(null);
 
   const fetchData = async () => {
     if (!user) return;
@@ -30,21 +56,27 @@ export default function EmployeeExams() {
 
     try {
       // 1) exams CRÍTICO
-      const examsRes = await apiFetchAuth<any[]>("/exams", { method: "GET" });
-      setExams(examsRes);
+      const examsRes = await apiFetchAuth<ApiList<ExamRow>>("/exams", {
+        method: "GET",
+      });
+      const examsList = Array.isArray(examsRes.data) ? examsRes.data : [];
+      setExams(examsList);
 
       // 2) results OPCIONAL
-      const resultsRes = await apiFetchAuth<any[]>("/exams/results", {
-        method: "GET",
-      }).catch(() => null);
+      const resultsRes = await apiFetchAuth<ApiList<ExamResultRow>>(
+        "/exams/results",
+        { method: "GET" }
+      ).catch(() => null);
 
-      if (resultsRes) {
-        setResults(resultsRes.filter((r: any) => r.userId === user.id));
+      if (resultsRes?.data && Array.isArray(resultsRes.data)) {
+        setResults(resultsRes.data.filter((r) => r.userId === user.id));
       } else {
         setResults([]);
       }
     } catch (e) {
       setError(normalizeError(e, "Error al cargar exámenes"));
+      setExams([]);
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -55,7 +87,7 @@ export default function EmployeeExams() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const startExam = (exam: any) => {
+  const startExam = (exam: ExamRow) => {
     setSelectedExam(exam);
     setAnswers(new Array(exam.questions.length).fill(-1));
     setShowResult(false);
@@ -63,9 +95,11 @@ export default function EmployeeExams() {
   };
 
   const handleAnswerChange = (questionIndex: number, answerIndex: number) => {
-    const newAnswers = [...answers];
-    newAnswers[questionIndex] = answerIndex;
-    setAnswers(newAnswers);
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[questionIndex] = answerIndex;
+      return next;
+    });
   };
 
   const submitExam = async () => {
@@ -77,7 +111,7 @@ export default function EmployeeExams() {
     }
 
     try {
-      const result = await apiFetchAuth<any>(
+      const res = await apiFetchAuth<SubmitResult>(
         `/exams/${selectedExam.id}/submit`,
         {
           method: "POST",
@@ -85,7 +119,7 @@ export default function EmployeeExams() {
         }
       );
 
-      setLastResult(result);
+      setLastResult(res);
       setShowResult(true);
     } catch (e) {
       alert(normalizeError(e, "Error al enviar el examen"));
@@ -123,9 +157,11 @@ export default function EmployeeExams() {
               <h2 className="text-2xl font-bold text-foreground mb-2">
                 {selectedExam.title}
               </h2>
-              <p className="text-muted-foreground mb-4">
-                {selectedExam.description}
-              </p>
+              {selectedExam.description && (
+                <p className="text-muted-foreground mb-4">
+                  {selectedExam.description}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 {selectedExam.questions.length} preguntas
               </p>
@@ -133,7 +169,7 @@ export default function EmployeeExams() {
           </div>
 
           <div className="space-y-6">
-            {selectedExam.questions.map((q: any, qIndex: number) => (
+            {selectedExam.questions.map((q, qIndex) => (
               <div
                 key={qIndex}
                 className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6"
@@ -143,7 +179,7 @@ export default function EmployeeExams() {
                 </h3>
 
                 <div className="space-y-2">
-                  {q.options.map((option: string, optIndex: number) => (
+                  {q.options.map((option, optIndex) => (
                     <label
                       key={optIndex}
                       className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer"
@@ -175,53 +211,51 @@ export default function EmployeeExams() {
       )}
 
       {showResult && lastResult && (
-        <div>
-          <div className="mb-6">
-            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8 text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Examen completado
-              </h2>
+        <div className="mb-6">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8 text-center">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Examen completado
+            </h2>
 
-              <div className="mb-6">
-                <div
-                  className={`text-6xl font-bold mb-2 ${
-                    lastResult.score >= 70
-                      ? "text-[var(--success)]"
-                      : lastResult.score >= 50
-                      ? "text-[var(--warning)]"
-                      : "text-destructive"
-                  }`}
-                >
-                  {lastResult.score.toFixed(0)}%
-                </div>
-                <p className="text-muted-foreground">
-                  Has acertado {lastResult.correct} de {lastResult.total}{" "}
-                  preguntas
+            <div className="mb-6">
+              <div
+                className={`text-6xl font-bold mb-2 ${
+                  lastResult.score >= 70
+                    ? "text-[var(--success)]"
+                    : lastResult.score >= 50
+                    ? "text-[var(--warning)]"
+                    : "text-destructive"
+                }`}
+              >
+                {lastResult.score.toFixed(0)}%
+              </div>
+              <p className="text-muted-foreground">
+                Has acertado {lastResult.correct} de {lastResult.total}{" "}
+                preguntas
+              </p>
+            </div>
+
+            {lastResult.score >= 70 ? (
+              <div className="bg-[var(--success-bg)] border border-[var(--success)]/30 rounded-lg p-4 mb-6">
+                <p className="text-foreground font-medium">
+                  ¡Excelente trabajo! Has aprobado el examen.
                 </p>
               </div>
+            ) : (
+              <div className="bg-[var(--error-bg)] border border-destructive/30 rounded-lg p-4 mb-6">
+                <p className="text-foreground font-medium">
+                  No has alcanzado la puntuación mínima. Puedes volver a
+                  realizar el examen.
+                </p>
+              </div>
+            )}
 
-              {lastResult.score >= 70 ? (
-                <div className="bg-[var(--success-bg)] border border-[var(--success)]/30 rounded-lg p-4 mb-6">
-                  <p className="text-foreground font-medium">
-                    ¡Excelente trabajo! Has aprobado el examen.
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-[var(--error-bg)] border border-destructive/30 rounded-lg p-4 mb-6">
-                  <p className="text-foreground font-medium">
-                    No has alcanzado la puntuación mínima. Puedes volver a
-                    realizar el examen.
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={closeExam}
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Volver a exámenes
-              </button>
-            </div>
+            <button
+              onClick={closeExam}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Volver a exámenes
+            </button>
           </div>
         </div>
       )}
@@ -253,9 +287,12 @@ export default function EmployeeExams() {
                   <h3 className="font-semibold text-foreground mb-2">
                     {exam.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {exam.description}
-                  </p>
+
+                  {exam.description && (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {exam.description}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                     <span>{exam.questions.length} preguntas</span>

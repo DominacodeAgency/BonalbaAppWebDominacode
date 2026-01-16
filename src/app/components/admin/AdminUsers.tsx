@@ -35,8 +35,11 @@ export default function AdminUsers() {
     setError(null);
 
     try {
-      const data = await apiFetchAuth<any[]>("/users", { method: "GET" });
-      setUsers(data);
+      const res = await apiFetchAuth<{ ok: boolean; data: any[] }>("/users", {
+        method: "GET",
+      });
+
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar usuarios"));
       setUsers([]);

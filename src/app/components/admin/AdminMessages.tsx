@@ -4,19 +4,40 @@ import { apiFetchAuth } from "@/auth/apiAuth";
 import PageState from "@/components/PageState";
 import { normalizeError } from "@/lib/normalizeError";
 
-/**
- * AdminMessages: mensajería para admins.
- * Usa AuthContext + apiFetchAuth (sin props).
- */
+type ApiList<T> = { ok: boolean; data: T[] };
+
+type UserRow = {
+  id: string;
+  email?: string | null;
+  username?: string | null;
+  full_name?: string | null;
+  role?: string | null;
+  area?: string | null;
+};
+
+type MessageRow = {
+  id: string;
+  senderId?: string;
+  senderName?: string;
+  recipientId: string; // "all" o userId
+  subject: string;
+  message: string;
+  read: boolean;
+  date: string;
+};
+
 export default function AdminMessages() {
   const { user } = useAuth();
 
-  const [messages, setMessages] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
+
+  const displayUser = (u?: UserRow | null) =>
+    u?.full_name || u?.email || u?.username || "Usuario";
 
   useEffect(() => {
     fetchData();
@@ -28,13 +49,13 @@ export default function AdminMessages() {
     setError(null);
 
     try {
-      const [messagesData, usersData] = await Promise.all([
-        apiFetchAuth<any[]>("/messages", { method: "GET" }),
-        apiFetchAuth<any[]>("/users", { method: "GET" }),
+      const [mRes, uRes] = await Promise.all([
+        apiFetchAuth<ApiList<MessageRow>>("/messages", { method: "GET" }),
+        apiFetchAuth<ApiList<UserRow>>("/users", { method: "GET" }),
       ]);
 
-      setMessages(messagesData);
-      setUsers(usersData);
+      setMessages(Array.isArray(mRes.data) ? mRes.data : []);
+      setUsers(Array.isArray(uRes.data) ? uRes.data : []);
     } catch (e) {
       setError(normalizeError(e, "Error al cargar mensajería"));
       setMessages([]);
@@ -49,13 +70,13 @@ export default function AdminMessages() {
     const formData = new FormData(e.target as HTMLFormElement);
 
     const messageData = {
-      recipientId: formData.get("recipientId") as string,
-      subject: formData.get("subject") as string,
-      message: formData.get("message") as string,
+      recipientId: String(formData.get("recipientId") || ""),
+      subject: String(formData.get("subject") || ""),
+      message: String(formData.get("message") || ""),
     };
 
     try {
-      await apiFetchAuth("/messages", {
+      await apiFetchAuth<{ ok: boolean }>("/messages", {
         method: "POST",
         body: JSON.stringify(messageData),
       });
@@ -102,7 +123,10 @@ export default function AdminMessages() {
 
           <div className="space-y-3">
             {messages.map((message) => {
-              const recipient = users.find((u) => u.id === message.recipientId);
+              const recipient =
+                message.recipientId === "all"
+                  ? null
+                  : users.find((u) => u.id === message.recipientId);
 
               return (
                 <div
@@ -130,7 +154,7 @@ export default function AdminMessages() {
                       Para:{" "}
                       {message.recipientId === "all"
                         ? "Todos los empleados"
-                        : recipient?.name || "Usuario"}
+                        : displayUser(recipient)}
                     </span>
                     <span>•</span>
                     <span>
@@ -149,7 +173,6 @@ export default function AdminMessages() {
           </div>
         </div>
 
-        {/* Send message modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-popover text-popover-foreground rounded-lg shadow-xl max-w-md w-full p-6 border border-border">
@@ -169,11 +192,13 @@ export default function AdminMessages() {
                   >
                     <option value="">Seleccionar destinatario...</option>
                     <option value="all">Todos los empleados</option>
+
                     {users
                       .filter((u) => u.id !== user.id)
                       .map((u) => (
                         <option key={u.id} value={u.id}>
-                          {u.name} ({u.role})
+                          {displayUser(u)} — {u.role}
+                          {u.area ? ` (${u.area})` : ""}
                         </option>
                       ))}
                   </select>
